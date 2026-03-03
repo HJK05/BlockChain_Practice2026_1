@@ -3,68 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <title>Crypto Price Tracker</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-        table {
-            margin: 0 auto;
-            border-collapse: collapse;
-            width: 300px;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 10px;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
 </head>
 <body>
 
-    <h1>Real-Time Cryptocurrency Prices</h1>
+<h1>Real-Time Cryptocurrency Prices</h1>
 
-    <table>
-        <tr>
-            <th>Coin</th>
-            <th>Price (USD)</th>
-        </tr>
-        <tr>
-            <td>Bitcoin</td>
-            <td id="btc">Loading...</td>
-        </tr>
-        <tr>
-            <td>Ethereum</td>
-            <td id="eth">Loading...</td>
-        </tr>
-    </table>
+<table border="1">
+    <tr>
+        <th>Coin</th>
+        <th>Price (USD)</th>
+    </tr>
+    <tr>
+        <td>Bitcoin</td>
+        <td id="btc">Loading...</td>
+    </tr>
+    <tr>
+        <td>Ethereum</td>
+        <td id="eth">Loading...</td>
+    </tr>
+</table>
 
-    <p>Updated every 10 seconds</p>
+<p>Updated every 10 seconds</p>
 
-    <script>
-        async function fetchPrices() {
-            try {
-                const response = await fetch(
-                    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
-                );
-                const data = await response.json();
+<script>
+async function fetchPrices() {
+    try {
+        const response = await fetch(
+            "https://api.allorigins.win/get?url=" + 
+            encodeURIComponent("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd")
+        );
 
-                document.getElementById("btc").innerText = data.bitcoin.usd;
-                document.getElementById("eth").innerText = data.ethereum.usd;
-            } catch (error) {
-                console.error("Error fetching prices:", error);
-            }
-        }
+        const proxyData = await response.json();
+        const data = JSON.parse(proxyData.contents);
 
-        // 처음 실행
-        fetchPrices();
+        document.getElementById("btc").innerText = data.bitcoin.usd;
+        document.getElementById("eth").innerText = data.ethereum.usd;
 
-        // 10초마다 업데이트
-        setInterval(fetchPrices, 10000);
-    </script>
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+fetchPrices();
+setInterval(fetchPrices, 10000);
+</script>
 
 </body>
 </html>
