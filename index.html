@@ -23,9 +23,11 @@
     </tr>
 </table>
 
-<p>Updated every 10 seconds</p>
+<p>Next update in <span id="countdown">10</span> seconds</p>
 
 <script>
+let countdown = 10;
+
 async function fetchPrices() {
     try {
         const response = await fetch(
@@ -33,10 +35,8 @@ async function fetchPrices() {
         );
         const data = await response.json();
 
-        // 가격 업데이트
         document.getElementById("btc").innerText = "$" + data.bitcoin.usd;
         document.getElementById("eth").innerText = "$" + data.ethereum.usd;
-
     } catch (error) {
         console.error("Error fetching prices:", error);
         document.getElementById("btc").innerText = "Error";
@@ -44,10 +44,18 @@ async function fetchPrices() {
     }
 }
 
-// 처음 실행
+// 처음 가격 가져오기
 fetchPrices();
-// 10초마다 갱신
-setInterval(fetchPrices, 10000);
+
+// 1초마다 카운트다운
+setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+        fetchPrices(); // 가격 업데이트
+        countdown = 10; // 카운트다운 초기화
+    }
+    document.getElementById("countdown").innerText = countdown;
+}, 1000);
 </script>
 
 </body>
