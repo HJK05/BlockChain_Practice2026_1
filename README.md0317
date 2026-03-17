@@ -1,0 +1,32 @@
+기능
+
+1. 지갑 연결 
+
+* MetaMask를 통해 사용자 지갑 연결
+* 계정 주소, 잔액, nonce 정보 표시
+* 연결 거절 및 오류 처리 구현
+
+
+2. ETH 송금 
+
+* 수신 주소 및 송금 금액 입력
+* 트랜잭션 생성 및 전송
+
+
+3. 트랜잭션 조회
+
+
+4. 네트워크 전환 기능
+
+* Sepolia / Base Sepolia / GIWA Sepolia 지원
+
+5. Faucet 링크 제공
+
+* 테스트 ETH를 받을 수 있는 Faucet 링크 제공
+* Sepolia, Base Sepolia, GIWA 네트워크별 지원
+
+
+
+
+주의 : 그냥 실행시 메타마스크 연결이 안되므로 VS Code에서 프로젝트 폴더를 열어야합니다
+
