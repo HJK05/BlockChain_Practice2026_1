@@ -1,0 +1,2655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blockchain Solidity Lab SPA</title>
+  <style>
+    :root {
+      --bg-main: #0a0e27;
+      --bg-surface: #111633;
+      --bg-elevated: #1a1f4a;
+      --neon-cyan: #00d4ff;
+      --neon-purple: #7c3aed;
+      --neon-green: #10b981;
+      --neon-orange: #f59e0b;
+      --neon-red: #ef4444;
+      --text-main: #e5e7eb;
+      --text-soft: #aab2d5;
+      --text-dim: #7c86b2;
+      --border-soft: rgba(255, 255, 255, 0.08);
+      --font-ui: "Segoe UI", "Malgun Gothic", sans-serif;
+      --font-code: Consolas, "Fira Code", monospace;
+      --shadow-cyan: 0 0 10px rgba(0, 212, 255, 0.35), 0 0 20px rgba(0, 212, 255, 0.18);
+      --shadow-purple: 0 0 10px rgba(124, 58, 237, 0.35), 0 0 20px rgba(124, 58, 237, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: linear-gradient(135deg, #0a0e27 0%, #0d1230 45%, #111633 100%);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+    }
+    body { min-height: 100vh; overflow-x: hidden; }
+    button, input, select, textarea { font: inherit; }
+    .hidden { display: none !important; }
+
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      animation: fadeIn 0.45s ease;
+    }
+
+    .panel, .card {
+      background: rgba(17, 22, 51, 0.88);
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+    }
+    .elevated { background: rgba(26, 31, 74, 0.96); }
+
+    .title-neon { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0, 212, 255, 0.5); }
+    .subtitle-neon { color: #c4b5fd; text-shadow: 0 0 8px rgba(124, 58, 237, 0.35); }
+    .code-font { font-family: var(--font-code); }
+    .mono { font-family: var(--font-code); word-break: break-all; }
+    .muted { color: var(--text-soft); }
+    .small { font-size: 0.92rem; }
+    .tiny { font-size: 0.82rem; }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+      color: #fff;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.18), rgba(124, 58, 237, 0.18));
+      border-color: rgba(0, 212, 255, 0.35);
+      box-shadow: var(--shadow-cyan);
+    }
+    .btn-success {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #d1fae5;
+    }
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fef3c7;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fee2e2;
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.10);
+      color: #e5e7eb;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.35s ease; }
+
+    .launcher-wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 24px 32px;
+    }
+    .launcher-title { font-size: 2.6rem; margin: 0 0 10px 0; }
+    .launcher-subtitle { margin: 0 0 26px 0; color: var(--text-soft); }
+    .launcher-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      font-size: 0.86rem;
+      color: #dbeafe;
+    }
+
+    .lab-card {
+      position: relative;
+      background: linear-gradient(180deg, rgba(17, 22, 51, 0.96), rgba(12, 16, 38, 0.96));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 28px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      animation: slideUp 0.45s ease;
+    }
+    .lab-card:hover, .lab-card:focus-visible {
+      transform: translateY(-8px);
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.38),
+        0 0 18px rgba(0, 212, 255, 0.18),
+        0 0 30px rgba(124, 58, 237, 0.14);
+      outline: none;
+    }
+    .lab-card.mining { animation: miningClick 0.65s ease; }
+    .lab-card-glow {
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(135deg, rgba(0,212,255,0.18), transparent 35%, rgba(124,58,237,0.18) 70%, transparent 100%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .lab-card-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .lab-card-header h2 {
+      margin: 0 0 6px 0;
+      font-size: 1.45rem;
+      color: #f8fbff;
+    }
+    .lab-card-header p { margin: 0; color: var(--text-soft); }
+
+    .chain-icon-wrap {
+      width: 70px;
+      height: 70px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      box-shadow: 0 0 18px rgba(0,212,255,0.12);
+      flex-shrink: 0;
+    }
+    .chain-icon { position: relative; width: 34px; height: 20px; }
+    .chain-icon span {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--neon-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(0,212,255,0.4);
+    }
+    .chain-icon span:nth-child(1) { left: 0; top: 4px; }
+    .chain-icon span:nth-child(2) { left: 11px; top: 4px; }
+    .chain-icon span:nth-child(3) { left: 22px; top: 4px; }
+    .chain-icon::before, .chain-icon::after {
+      content: "";
+      position: absolute;
+      top: 9px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--neon-cyan), #93c5fd);
+      box-shadow: 0 0 8px rgba(0,212,255,0.5);
+    }
+    .chain-icon::before { left: 8px; width: 10px; }
+    .chain-icon::after { left: 19px; width: 10px; }
+
+    .lab-meta-row, .tag-row, .progress-section, .lab-card-footer {
+      position: relative;
+      z-index: 1;
+    }
+    .lab-meta-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .meta-pill.difficulty { color: #fde68a; background: rgba(245, 158, 11, 0.12); }
+    .meta-pill.duration { color: #bfdbfe; background: rgba(59, 130, 246, 0.12); }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .tag-chip {
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.14);
+      color: #ddd6fe;
+      border: 1px solid rgba(124, 58, 237, 0.22);
+      font-family: var(--font-code);
+      font-size: 0.86rem;
+    }
+
+    .progress-section { margin-top: 22px; }
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--text-soft);
+      font-size: 0.95rem;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+      box-shadow: 0 0 12px rgba(0,212,255,0.35);
+      transition: width 0.35s ease;
+    }
+    .lab-card-footer {
+      margin-top: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-dim);
+    }
+    .arrow-hint {
+      font-size: 1.4rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0,212,255,0.45);
+    }
+
+    .lab-shell {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .lab-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .lab-title-block h1 { margin: 0 0 8px 0; font-size: 2rem; }
+    .lab-title-block p { margin: 0; color: var(--text-soft); }
+    .lab-topbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .tabbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      padding: 10px;
+    }
+    .tab {
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: var(--text-soft);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      position: relative;
+    }
+    .tab.active {
+      color: white;
+      background: rgba(0, 212, 255, 0.08);
+      border-color: rgba(0, 212, 255, 0.35);
+      box-shadow: var(--shadow-cyan);
+      animation: neonPulse 1.8s infinite alternate;
+    }
+    .tab-check {
+      position: absolute;
+      top: -8px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(16,185,129,0.18);
+      color: #d1fae5;
+      border: 1px solid rgba(16,185,129,0.45);
+      font-size: 0.75rem;
+      box-shadow: 0 0 8px rgba(16,185,129,0.22);
+    }
+    .tab.completed .tab-check { display: inline-flex; }
+
+    .lab-grid {
+      display: grid;
+      grid-template-columns: minmax(430px, 1.25fr) minmax(340px, 0.9fr) minmax(360px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .stack { display: flex; flex-direction: column; gap: 18px; }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .panel-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #eef8ff;
+    }
+    .panel-body { padding: 16px; }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .status-dot.online {
+      background: var(--neon-green);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+      animation: miningPulse 1.4s infinite;
+    }
+
+    .editor-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 650px;
+      overflow: hidden;
+    }
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(90deg, rgba(0, 212, 255, 0.08), rgba(124, 58, 237, 0.08));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .editor-title-wrap { display: flex; align-items: center; gap: 10px; }
+    .editor-dot { width: 10px; height: 10px; border-radius: 999px; }
+    .editor-dot.cyan { background: var(--neon-cyan); box-shadow: 0 0 10px rgba(0,212,255,0.5); }
+    .editor-dot.purple { background: var(--neon-purple); box-shadow: 0 0 10px rgba(124,58,237,0.5); }
+    .editor-dot.green { background: var(--neon-green); box-shadow: 0 0 10px rgba(16,185,129,0.5); }
+    .editor-title { color: #e6f7ff; font-size: 0.96rem; }
+    .editor-toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .editor-main {
+      position: relative;
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      min-height: 540px;
+      background: #0b1028;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .editor-line-numbers {
+      margin: 0;
+      padding: 18px 10px 18px 0;
+      text-align: right;
+      line-height: 1.6;
+      font-size: 15px;
+      color: #5f6b99;
+      background: rgba(255,255,255,0.02);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      user-select: none;
+      overflow: hidden;
+      white-space: pre;
+    }
+    .editor-code-wrap { position: relative; overflow: hidden; }
+    .editor-highlight, .editor-textarea {
+      margin: 0;
+      padding: 18px;
+      font-size: 15px;
+      line-height: 1.6;
+      letter-spacing: 0;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+    }
+    .editor-highlight {
+      position: absolute;
+      inset: 0;
+      color: #dbe7ff;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .editor-highlight code { display: block; min-height: 100%; }
+    .editor-textarea {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 540px;
+      resize: none;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: transparent;
+      caret-color: #ffffff;
+      z-index: 2;
+    }
+    .editor-textarea::selection { background: rgba(0, 212, 255, 0.25); }
+    .editor-statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      color: var(--text-soft);
+      background: rgba(255,255,255,0.02);
+      flex-wrap: wrap;
+    }
+
+    .editor-token-keyword { color: var(--neon-cyan); }
+    .editor-token-type { color: #a78bfa; }
+    .editor-token-string { color: var(--neon-green); }
+    .editor-token-number { color: var(--neon-orange); }
+    .editor-token-comment { color: #7b849f; }
+    .editor-token-function { color: #60a5fa; }
+    .editor-token-plain { color: #dbe7ff; }
+
+    .section-title {
+      margin: 0 0 12px 0;
+      font-size: 0.95rem;
+      color: #dbeafe;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .info-item, .tx-card, .contract-card, .log-card, .result-card {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+    .info-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #f8fbff;
+    }
+    .tx-card, .contract-card, .log-card, .result-card { margin-bottom: 10px; }
+
+    .select, .input, .textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: white;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .textarea { min-height: 96px; resize: vertical; }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .guide-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-soft);
+      line-height: 1.7;
+    }
+    .kv {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 8px;
+      margin-bottom: 6px;
+      align-items: start;
+    }
+    .kv .k { color: var(--text-soft); font-size: 0.9rem; }
+    .kv .v { color: #eff6ff; font-size: 0.92rem; word-break: break-word; }
+
+    .compile-ok { color: #d1fae5; }
+    .compile-warn { color: #fef3c7; }
+    .compile-err { color: #fee2e2; }
+    .compile-info { color: #dbeafe; }
+
+    .state-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .state-var {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      transition: box-shadow 0.28s ease, transform 0.28s ease, border-color 0.28s ease;
+    }
+    .state-var.flash {
+      transform: translateY(-2px);
+      border-color: rgba(0,212,255,0.42);
+      box-shadow: 0 0 18px rgba(0,212,255,0.16);
+    }
+    .var-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #dbeafe;
+    }
+    .pill.public { color: #bfdbfe; }
+    .pill.private { color: #fbcfe8; }
+    .pill.type { color: #ddd6fe; }
+
+    .challenge-box {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(124,58,237,0.10);
+      border: 1px solid rgba(124,58,237,0.22);
+    }
+    .challenge-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+    .challenge-table th, .challenge-table td {
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .challenge-table th { color: #e0e7ff; background: rgba(255,255,255,0.04); }
+
+    .console-shell {
+      position: fixed;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      z-index: 20;
+      max-height: 42vh;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.24s ease, opacity 0.24s ease;
+    }
+    .console-shell.minimized {
+      transform: translateY(calc(100% - 52px));
+    }
+    .console-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .console-body {
+      overflow: auto;
+      padding: 12px;
+      max-height: 30vh;
+    }
+    .console-item {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .console-item.success { border-color: rgba(16,185,129,0.28); }
+    .console-item.error { border-color: rgba(239,68,68,0.28); }
+    .console-item.warning { border-color: rgba(245,158,11,0.28); }
+    .console-item.info { border-color: rgba(0,212,255,0.20); }
+    .console-item.tx { border-color: rgba(245,158,11,0.28); }
+    .console-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .console-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .console-details {
+      margin-top: 10px;
+      display: none;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+    }
+    .console-item.open .console-details { display: block; }
+
+    .toast-wrap {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      min-width: 280px;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(17,22,51,0.96);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+      animation: toastIn 0.25s ease;
+    }
+    .toast.success { border-color: rgba(16,185,129,0.30); }
+    .toast.error { border-color: rgba(239,68,68,0.30); }
+    .toast.warning { border-color: rgba(245,158,11,0.30); }
+    .toast.info { border-color: rgba(0,212,255,0.24); }
+    .toast-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 6, 20, 0.72);
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: 80vh;
+      overflow: auto;
+      background: rgba(17,22,51,0.98);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.32);
+    }
+    .modal-header, .modal-body {
+      padding: 16px 18px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .shortcut-table th, .shortcut-table td {
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px;
+      text-align: left;
+    }
+
+    .shimmer { position: relative; overflow: hidden; }
+    .shimmer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -150%;
+      width: 120%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @media (max-width: 1260px) {
+      .lab-grid { grid-template-columns: 1fr; }
+      .console-shell { left: 12px; right: 12px; bottom: 12px; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes neonPulse {
+      from { box-shadow: 0 0 8px rgba(0,212,255,0.18); }
+      to { box-shadow: 0 0 12px rgba(0,212,255,0.35), 0 0 24px rgba(124,58,237,0.18); }
+    }
+    @keyframes miningPulse {
+      0% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.85; }
+    }
+    @keyframes shimmer {
+      0% { left: -150%; }
+      100% { left: 150%; }
+    }
+    @keyframes miningClick {
+      0% { transform: scale(1); box-shadow: 0 0 0 rgba(0,212,255,0); }
+      30% { transform: scale(1.015); box-shadow: 0 0 14px rgba(0,212,255,0.4), 0 0 24px rgba(124,58,237,0.22); }
+      60% { transform: scale(0.995); box-shadow: 0 0 28px rgba(0,212,255,0.28), 0 0 38px rgba(124,58,237,0.18); }
+      100% { transform: scale(1); box-shadow: 0 0 0 rgba(0,212,255,0); }
+    }
+    @keyframes toastIn {
+      from { transform: translateX(16px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <div class="modal-backdrop" id="shortcutModalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <strong>단축키 도움말</strong>
+        <button class="btn btn-ghost" id="closeShortcutModalBtn">닫기</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcut-table">
+          <thead>
+            <tr><th>단축키</th><th>기능</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">1</td><td>Lab 1 이동</td></tr>
+            <tr><td class="mono">Escape</td><td>런처로 복귀</td></tr>
+            <tr><td class="mono">Ctrl+Enter</td><td>현재 Lab 컴파일</td></tr>
+            <tr><td class="mono">Ctrl+Shift+D</td><td>현재 Lab 배포</td></tr>
+            <tr><td class="mono">Ctrl+/</td><td>단축키 도움말 모달</td></tr>
+            <tr><td class="mono">Ctrl+`</td><td>콘솔 토글</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <section id="launcherPage" class="page active">
+      <div class="launcher-wrap">
+        <h1 class="launcher-title title-neon">Blockchain Solidity Lab</h1>
+        <p class="launcher-subtitle subtitle-neon">정규식 기반 Solidity 파서와 가상 VM으로 실습하는 단일 HTML 대시보드</p>
+
+        <div class="launcher-meta">
+          <span class="badge">순수 HTML / CSS / JS</span>
+          <span class="badge">localStorage 자동 저장</span>
+          <span class="badge" id="launcherOverallProgress">전체 진행률 0/3 Labs</span>
+          <button class="btn btn-danger" id="resetProgressBtn">진행률 초기화</button>
+        </div>
+
+        <div class="lab-card shimmer" id="lab1Card" tabindex="0" role="button" aria-label="Lab 1 열기">
+          <div class="lab-card-glow"></div>
+
+          <div class="lab-card-header">
+            <div class="chain-icon-wrap">
+              <div class="chain-icon">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+            <div>
+              <h2>Lab 1. HelloWorld / HelloNumber</h2>
+              <p>public, private, getter/setter, int 타입, 함수 실행 시뮬레이션</p>
+            </div>
+          </div>
+
+          <div class="lab-meta-row">
+            <span class="meta-pill difficulty">기초 ★☆☆</span>
+            <span class="meta-pill duration">~15분</span>
+          </div>
+
+          <div class="tag-row">
+            <span class="tag-chip">string</span>
+            <span class="tag-chip">public</span>
+            <span class="tag-chip">view</span>
+            <span class="tag-chip">int</span>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-label-row">
+              <span>진행률</span>
+              <span id="lab1ProgressText">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div id="lab1ProgressFill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="lab-card-footer">
+            <span>클릭하거나 Enter 키로 시작</span>
+            <span class="arrow-hint">→</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lab1Page" class="page">
+      <div class="lab-shell">
+        <div class="lab-topbar">
+          <div class="lab-title-block">
+            <h1 class="title-neon">Lab 1 — HelloWorld / HelloNumber</h1>
+            <p>단축키: <span class="badge">1 = Lab 1</span> <span class="badge">Esc = Launcher</span> <span class="badge">Ctrl+/ = 도움말</span></p>
+          </div>
+          <div class="lab-topbar-actions">
+            <button class="btn btn-warning" id="backToLauncherBtn">런처로</button>
+            <button class="btn btn-danger" id="resetChainBtn">체인 초기화</button>
+            <button class="btn btn-ghost" id="shortcutHelpBtn">단축키</button>
+          </div>
+        </div>
+
+        <div class="tabbar panel elevated" id="tabbar">
+          <button class="tab active" data-tab="basic">탭 1: HelloWorld 기본 <span class="tab-check">✓</span></button>
+          <button class="tab" data-tab="extended">탭 2: HelloWorld 확장 <span class="tab-check">✓</span></button>
+          <button class="tab" data-tab="number">탭 3: HelloNumber <span class="tab-check">✓</span></button>
+        </div>
+
+        <div class="lab-grid">
+          <div class="panel editor-shell">
+            <div class="editor-header">
+              <div class="editor-title-wrap">
+                <div class="editor-dot cyan"></div>
+                <div class="editor-dot purple"></div>
+                <div class="editor-dot green"></div>
+                <span class="editor-title code-font">Solidity Editor</span>
+              </div>
+              <div class="editor-toolbar">
+                <button class="btn btn-warning" id="resetCodeBtn" type="button">초기화</button>
+                <button class="btn btn-primary" id="copyCodeBtn" type="button">복사</button>
+              </div>
+            </div>
+
+            <div class="editor-main">
+              <div class="editor-line-numbers code-font" id="lineNumbers">1</div>
+              <div class="editor-code-wrap">
+                <pre class="editor-highlight code-font" id="highlightLayer" aria-hidden="true"><code id="highlightCode"></code></pre>
+                <textarea id="codeEditor" class="editor-textarea code-font" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+              </div>
+            </div>
+
+            <div class="editor-statusbar">
+              <span id="cursorPosition">줄 1, 열 1</span>
+              <span id="autosaveStatus">자동 저장됨</span>
+              <span id="editorContractSummary" class="badge">미컴파일</span>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>컨트롤 패널</h3>
+                <span class="badge"><span class="status-dot online"></span> VM 실행 중</span>
+              </div>
+              <div class="panel-body">
+                <div class="form-row">
+                  <label class="small muted" for="accountSelect">활성 계정</label>
+                  <select id="accountSelect" class="select"></select>
+                </div>
+
+                <div class="btn-row">
+                  <button class="btn btn-primary" id="compileBtn">컴파일</button>
+                  <button class="btn btn-success" id="deployBtn">배포</button>
+                </div>
+
+                <div class="result-card" id="compileOutput">
+                  <strong>컴파일 결과</strong>
+                  <div class="muted small" style="margin-top:6px;">아직 컴파일하지 않았습니다.</div>
+                </div>
+
+                <h4 class="section-title">블록체인 상태</h4>
+                <div class="info-grid" id="blockchainStatus"></div>
+
+                <h4 class="section-title" style="margin-top:16px;">실습 가이드</h4>
+                <ul class="guide-list" id="labGuide"></ul>
+
+                <div id="challengeSection"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>최근 트랜잭션</h3>
+                <span class="badge" id="txCountBadge">0건</span>
+              </div>
+              <div class="panel-body" id="transactionList"></div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>인터랙션 패널</h3>
+                <span class="badge" id="activeContractBadge">배포 전</span>
+              </div>
+              <div class="panel-body">
+                <div id="contractSummary"></div>
+                <div id="interactionPanel"></div>
+                <div id="lastActionResult"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>상태 변수 시각화</h3>
+              </div>
+              <div class="panel-body">
+                <div id="stateVisualization"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="console-shell panel elevated" id="consoleShell">
+    <div class="console-toolbar">
+      <div>
+        <strong>콘솔 패널</strong>
+        <span class="badge" id="consoleCountBadge">0 logs</span>
+      </div>
+      <div class="btn-row" style="margin:0;">
+        <button class="btn btn-ghost" id="toggleConsoleBtn">최소화</button>
+        <button class="btn btn-danger" id="clearConsoleBtn">클리어</button>
+      </div>
+    </div>
+    <div class="console-body" id="consoleBody"></div>
+  </div>
+
+  <script>
+    const APP_STATE = {
+      activeTab: 'basic',
+      lastCompile: null,
+      consoleMinimized: false,
+      lastChangedVars: [],
+      interactionBindNonce: 0
+    };
+
+    const STORAGE_KEYS = {
+      completedTabs: 'lab1-completed-tabs',
+      consoleMinimized: 'lab1-console-minimized'
+    };
+
+    const TAB_CONFIG = {
+      basic: {
+        label: 'HelloWorldBasic',
+        progressKey: 'tab1',
+        guide: [
+          '코드를 확인하세요. string public greet',
+          '컴파일 버튼을 누르세요',
+          '배포 버튼을 누르세요',
+          '우측에서 greet 버튼 클릭!',
+          '힌트: public 변수는 자동으로 getter 함수가 생성됩니다.'
+        ],
+        code: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract HelloWorld {
+    string public greet = "Hello World";
+}
+`
+      },
+      extended: {
+        label: 'HelloWorldExtended',
+        progressKey: 'tab2',
+        guide: [
+          'private 변수와 함수를 확인하세요',
+          '컴파일 → 배포',
+          'greet()를 호출해보세요',
+          'setGreeting으로 값을 변경하세요',
+          '다시 greet()를 호출하여 변경 확인!',
+          '힌트: 상태 변경 함수는 gas를 소모합니다. 잔액 변화를 확인해보세요.'
+        ],
+        code: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract HelloWorld {
+    string private _greeting = "Hello, World!";
+
+    function greet() public view returns (string memory) {
+        return _greeting;
+    }
+
+    function setGreeting(string memory newGreeting) public {
+        _greeting = newGreeting;
+    }
+}
+`
+      },
+      number: {
+        label: 'HelloNumber',
+        progressKey: 'tab3',
+        guide: [
+          'int 타입 변수를 확인하세요',
+          '컴파일 → 배포 → number 확인',
+          '도전과제에 도전해보세요!',
+          '도전: private으로 바꾸고 getter/setter를 추가해보세요!'
+        ],
+        code: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract HelloNumber {
+    int public number = 10;
+}
+`,
+        hintCode: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract HelloNumber {
+    int private _number = 10;
+
+    function getNumber() public view returns (int) {
+        return _number;
+    }
+
+    function setNumber(int newNumber) public {
+        _number = newNumber;
+    }
+}
+`
+      }
+    };
+
+    const solidityTokens = {
+      keywords: new Set([
+        'pragma', 'solidity', 'contract', 'function', 'returns',
+        'public', 'private', 'internal', 'external',
+        'view', 'pure', 'if', 'else', 'return', 'require',
+        'revert', 'constructor', 'mapping', 'event', 'emit',
+        'modifier', 'while', 'for', 'break', 'continue', 'delete',
+        'new', 'true', 'false'
+      ]),
+      types: new Set([
+        'string', 'int', 'uint', 'uint256', 'int256', 'bool', 'address', 'bytes', 'byte'
+      ]),
+      modifiers: new Set(['memory', 'storage', 'calldata', 'payable'])
+    };
+
+    function getEditorStorageKey(tab) {
+      return `solidity-lab-editor-code-${tab}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function tokenizeSolidity(code) {
+      const patterns = [
+        { type: 'comment', regex: /\/\/[^\n]*|\/\*[\s\S]*?\*\//y },
+        { type: 'string', regex: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y },
+        { type: 'number', regex: /\b\d+(?:\.\d+)?\b/y },
+        { type: 'identifier', regex: /\b[A-Za-z_]\w*\b/y },
+        { type: 'whitespace', regex: /\s+/y },
+        { type: 'symbol', regex: /./y }
+      ];
+
+      let index = 0;
+      const out = [];
+
+      while (index < code.length) {
+        let matched = false;
+        for (const pattern of patterns) {
+          pattern.regex.lastIndex = index;
+          const match = pattern.regex.exec(code);
+          if (!match) continue;
+          matched = true;
+          const value = match[0];
+          index = pattern.regex.lastIndex;
+
+          if (pattern.type === 'identifier') {
+            const nextSlice = code.slice(index);
+            const functionLookahead = /^\s*\(/.test(nextSlice);
+            if (solidityTokens.keywords.has(value)) out.push(`<span class="editor-token-keyword">${escapeHtml(value)}</span>`);
+            else if (solidityTokens.types.has(value)) out.push(`<span class="editor-token-type">${escapeHtml(value)}</span>`);
+            else if (solidityTokens.modifiers.has(value)) out.push(`<span class="editor-token-type">${escapeHtml(value)}</span>`);
+            else if (functionLookahead) out.push(`<span class="editor-token-function">${escapeHtml(value)}</span>`);
+            else out.push(`<span class="editor-token-plain">${escapeHtml(value)}</span>`);
+          } else if (pattern.type === 'comment') {
+            out.push(`<span class="editor-token-comment">${escapeHtml(value)}</span>`);
+          } else if (pattern.type === 'string') {
+            out.push(`<span class="editor-token-string">${escapeHtml(value)}</span>`);
+          } else if (pattern.type === 'number') {
+            out.push(`<span class="editor-token-number">${escapeHtml(value)}</span>`);
+          } else {
+            out.push(escapeHtml(value));
+          }
+          break;
+        }
+        if (!matched) {
+          out.push(escapeHtml(code[index]));
+          index += 1;
+        }
+      }
+      return out.join('');
+    }
+
+    function getEditorElements() {
+      return {
+        editor: document.getElementById('codeEditor'),
+        highlightCode: document.getElementById('highlightCode'),
+        highlightLayer: document.getElementById('highlightLayer'),
+        lineNumbers: document.getElementById('lineNumbers'),
+        cursorPosition: document.getElementById('cursorPosition'),
+        autosaveStatus: document.getElementById('autosaveStatus')
+      };
+    }
+
+    function updateLineNumbers(editor, lineNumbers) {
+      const lineCount = editor.value.split('\n').length;
+      lineNumbers.textContent = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
+    }
+
+    function updateHighlight(editor, highlightCode) {
+      highlightCode.innerHTML = tokenizeSolidity(editor.value.length ? editor.value : ' ');
+    }
+
+    function syncScroll(editor, highlightLayer, lineNumbers) {
+      highlightLayer.scrollTop = editor.scrollTop;
+      highlightLayer.scrollLeft = editor.scrollLeft;
+      lineNumbers.scrollTop = editor.scrollTop;
+    }
+
+    function updateCursorPosition(editor, cursorPositionEl) {
+      const pos = editor.selectionStart;
+      const textBefore = editor.value.slice(0, pos);
+      const lines = textBefore.split('\n');
+      const line = lines.length;
+      const col = lines[lines.length - 1].length + 1;
+      cursorPositionEl.textContent = `줄 ${line}, 열 ${col}`;
+    }
+
+    let autosaveTimer = null;
+
+    function saveCode() {
+      const { editor, autosaveStatus } = getEditorElements();
+      localStorage.setItem(getEditorStorageKey(APP_STATE.activeTab), editor.value);
+      autosaveStatus.textContent = '자동 저장됨';
+    }
+
+    function scheduleAutosave() {
+      const { autosaveStatus } = getEditorElements();
+      autosaveStatus.textContent = '저장 중...';
+      clearTimeout(autosaveTimer);
+      autosaveTimer = setTimeout(saveCode, 250);
+    }
+
+    function insertTab(editor) {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const value = editor.value;
+      const tab = '  ';
+      editor.value = value.slice(0, start) + tab + value.slice(end);
+      editor.selectionStart = editor.selectionEnd = start + tab.length;
+    }
+
+    function refreshEditorUI() {
+      const { editor, highlightCode, highlightLayer, lineNumbers, cursorPosition } = getEditorElements();
+      updateHighlight(editor, highlightCode);
+      updateLineNumbers(editor, lineNumbers);
+      updateCursorPosition(editor, cursorPosition);
+      syncScroll(editor, highlightLayer, lineNumbers);
+    }
+
+    function loadCodeForActiveTab() {
+      const { editor } = getEditorElements();
+      const saved = localStorage.getItem(getEditorStorageKey(APP_STATE.activeTab));
+      editor.value = saved ?? TAB_CONFIG[APP_STATE.activeTab].code;
+      refreshEditorUI();
+      document.getElementById('autosaveStatus').textContent = '자동 저장됨';
+    }
+
+    function setupEditor() {
+      const { editor, highlightLayer, lineNumbers, cursorPosition } = getEditorElements();
+      loadCodeForActiveTab();
+
+      editor.addEventListener('input', () => {
+        refreshEditorUI();
+        scheduleAutosave();
+      });
+      editor.addEventListener('scroll', () => syncScroll(editor, highlightLayer, lineNumbers));
+      editor.addEventListener('click', () => updateCursorPosition(editor, cursorPosition));
+      editor.addEventListener('keyup', () => updateCursorPosition(editor, cursorPosition));
+      editor.addEventListener('select', () => updateCursorPosition(editor, cursorPosition));
+      editor.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          insertTab(editor);
+          refreshEditorUI();
+          scheduleAutosave();
+        }
+      });
+
+      document.getElementById('resetCodeBtn').addEventListener('click', () => {
+        editor.value = TAB_CONFIG[APP_STATE.activeTab].code;
+        refreshEditorUI();
+        saveCode();
+        toast('info', '코드를 기본 예제로 되돌렸어.');
+      });
+
+      document.getElementById('copyCodeBtn').addEventListener('click', async () => {
+        const autosaveStatus = document.getElementById('autosaveStatus');
+        try {
+          await navigator.clipboard.writeText(editor.value);
+          autosaveStatus.textContent = '코드 복사됨';
+          toast('success', '코드를 클립보드에 복사했어.');
+          setTimeout(() => autosaveStatus.textContent = '자동 저장됨', 1200);
+        } catch {
+          autosaveStatus.textContent = '복사 실패';
+          toast('error', '코드 복사에 실패했어.');
+        }
+      });
+    }
+
+    function getCompletedTabs() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.completedTabs) || '[]');
+    }
+
+    function getLab1Progress() {
+      const completedTabs = getCompletedTabs();
+      const totalTabs = 3;
+      return Math.min(100, Math.round((completedTabs.length / totalTabs) * 100));
+    }
+
+    function updateLab1ProgressUI() {
+      const progress = getLab1Progress();
+      const completedTabs = getCompletedTabs();
+      const fill = document.getElementById('lab1ProgressFill');
+      const text = document.getElementById('lab1ProgressText');
+      const launcherText = document.getElementById('launcherOverallProgress');
+
+      if (fill) fill.style.width = progress + '%';
+      if (text) text.textContent = progress + '%';
+      if (launcherText) launcherText.textContent = `전체 진행률 ${completedTabs.length}/3 Labs`;
+
+      document.querySelectorAll('.tab').forEach(btn => {
+        const config = TAB_CONFIG[btn.dataset.tab];
+        btn.classList.toggle('completed', completedTabs.includes(config.progressKey));
+      });
+    }
+
+    function markTabCompleted(progressKey) {
+      const completedTabs = getCompletedTabs();
+      if (!completedTabs.includes(progressKey)) {
+        completedTabs.push(progressKey);
+        localStorage.setItem(STORAGE_KEYS.completedTabs, JSON.stringify(completedTabs));
+        updateLab1ProgressUI();
+        toast('success', '이 탭의 진행률이 완료로 기록됐어.');
+      } else {
+        updateLab1ProgressUI();
+      }
+    }
+
+    function resetProgress() {
+      localStorage.removeItem(STORAGE_KEYS.completedTabs);
+      updateLab1ProgressUI();
+      toast('warning', '진행률을 초기화했어.');
+    }
+
+    function normalizeAddress(shortAddr) {
+      if (!shortAddr) return '0x0000000000000000000000000000000000000000';
+      if (shortAddr.length >= 42) return shortAddr;
+      return shortAddr.padEnd(42, '0');
+    }
+
+    const BlockchainEngine = {
+      blockNumber: 1,
+      timestamp: Math.floor(Date.now() / 1000),
+      gasPrice: 20,
+      chainId: 1337,
+      activeAccountIndex: 0,
+      accounts: [
+        { address: '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4', balance: 100, label: 'Account 1', nonce: 0 },
+        { address: '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835Cb2', balance: 100, label: 'Account 2', nonce: 0 },
+        { address: '0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db', balance: 100, label: 'Account 3', nonce: 0 },
+        { address: '0x78731D3Ca6b7E34ac0F824c42a7cC18A495cabaB', balance: 100, label: 'Account 4', nonce: 0 },
+        { address: '0x617F2E2fD72Fd9D3dF4D1e8A7E3B3A26B70FfD92', balance: 100, label: 'Account 5', nonce: 0 }
+      ],
+      labs: {
+        lab1: { contracts: {}, contractOrder: [], txs: [], receipts: [] }
+      },
+
+      init() {
+        const saved = localStorage.getItem('blockchain-engine-state');
+        if (saved) {
+          try {
+            Object.assign(this, JSON.parse(saved));
+          } catch (err) {
+            console.warn('엔진 상태 복원 실패', err);
+          }
+        }
+        this.persist();
+      },
+
+      persist() {
+        localStorage.setItem('blockchain-engine-state', JSON.stringify({
+          blockNumber: this.blockNumber,
+          timestamp: this.timestamp,
+          gasPrice: this.gasPrice,
+          chainId: this.chainId,
+          activeAccountIndex: this.activeAccountIndex,
+          accounts: this.accounts,
+          labs: this.labs
+        }));
+      },
+
+      resetAll() {
+        localStorage.removeItem('blockchain-engine-state');
+        this.blockNumber = 1;
+        this.timestamp = Math.floor(Date.now() / 1000);
+        this.gasPrice = 20;
+        this.chainId = 1337;
+        this.activeAccountIndex = 0;
+        this.accounts = [
+          { address: '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4', balance: 100, label: 'Account 1', nonce: 0 },
+          { address: '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835Cb2', balance: 100, label: 'Account 2', nonce: 0 },
+          { address: '0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db', balance: 100, label: 'Account 3', nonce: 0 },
+          { address: '0x78731D3Ca6b7E34ac0F824c42a7cC18A495cabaB', balance: 100, label: 'Account 4', nonce: 0 },
+          { address: '0x617F2E2fD72Fd9D3dF4D1e8A7E3B3A26B70FfD92', balance: 100, label: 'Account 5', nonce: 0 }
+        ];
+        this.labs = { lab1: { contracts: {}, contractOrder: [], txs: [], receipts: [] } };
+        this.persist();
+      },
+
+      ensureLab(labId) {
+        if (!this.labs[labId]) this.labs[labId] = { contracts: {}, contractOrder: [], txs: [], receipts: [] };
+      },
+
+      getActiveAccount() { return this.accounts[this.activeAccountIndex]; },
+
+      setActiveAccount(index) {
+        if (index >= 0 && index < this.accounts.length) {
+          this.activeAccountIndex = index;
+          this.persist();
+        }
+      },
+
+      getLabState(labId = 'lab1') {
+        this.ensureLab(labId);
+        return this.labs[labId];
+      },
+
+      mineBlock() {
+        this.blockNumber += 1;
+        this.timestamp += 12;
+      },
+
+      randomHex(length) {
+        const chars = '0123456789abcdef';
+        let out = '';
+        for (let i = 0; i < length; i++) out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+      },
+
+      generateTxHash() { return '0x' + this.randomHex(64); },
+      generateContractAddress() { return '0x' + this.randomHex(40); },
+
+      calculateFeeEth(gasUsed) {
+        return (gasUsed * this.gasPrice) / 1000000000;
+      },
+
+      chargeGas(account, gasUsed) {
+        const feeEth = this.calculateFeeEth(gasUsed);
+        if (account.balance < feeEth) throw new Error('잔액 부족: 가스비를 지불할 수 없습니다.');
+        account.balance = Number((account.balance - feeEth).toFixed(12));
+        return feeEth;
+      },
+
+      createTxRecord({ from, to, type, action, gasUsed, value = 0, status = true, result = null }) {
+        return {
+          hash: this.generateTxHash(),
+          from,
+          to,
+          type,
+          action,
+          value,
+          gasUsed,
+          gasPrice: this.gasPrice,
+          blockNumber: this.blockNumber,
+          timestamp: this.timestamp,
+          status,
+          result
+        };
+      },
+
+      deployContract({ labId = 'lab1', contractName, parsedContract }) {
+        this.ensureLab(labId);
+        const lab = this.labs[labId];
+        const account = this.getActiveAccount();
+
+        const gasUsed = 180000 + Math.floor(Math.random() * 40000);
+        const feeEth = this.chargeGas(account, gasUsed);
+        const contractAddress = this.generateContractAddress();
+
+        const initialStorage = {};
+        parsedContract.variables.forEach(v => {
+          initialStorage[v.name] = coerceLiteral(v.initialValue, v.type);
+        });
+
+        const contract = {
+          address: contractAddress,
+          name: contractName,
+          parsed: parsedContract,
+          owner: account.address,
+          deployedBy: account.address,
+          deployedAtBlock: this.blockNumber,
+          deployedAtTime: this.timestamp,
+          state: JSON.parse(JSON.stringify(initialStorage))
+        };
+
+        lab.contracts[contractAddress] = contract;
+        lab.contractOrder.push(contractAddress);
+
+        const tx = this.createTxRecord({
+          from: account.address,
+          to: null,
+          type: 'deploy',
+          action: `${contractName} deployment`,
+          gasUsed,
+          result: { contractAddress, feeEth }
+        });
+
+        lab.txs.unshift(tx);
+        lab.receipts.unshift({
+          transactionHash: tx.hash,
+          contractAddress,
+          gasUsed,
+          effectiveGasPrice: this.gasPrice,
+          blockNumber: this.blockNumber,
+          status: 1
+        });
+
+        account.nonce += 1;
+        this.mineBlock();
+        this.persist();
+
+        return {
+          txHash: tx.hash,
+          contractAddress,
+          gasUsed,
+          feeEth,
+          blockNumber: tx.blockNumber,
+          contract
+        };
+      },
+
+      callPublicGetter({ labId = 'lab1', contractAddress, variableName }) {
+        const lab = this.getLabState(labId);
+        const contract = lab.contracts[contractAddress];
+        if (!contract) throw new Error('컨트랙트를 찾을 수 없습니다.');
+        return contract.state[variableName];
+      },
+
+      executeFunction({ labId = 'lab1', contractAddress, funcName, argValues = {} }) {
+        const lab = this.getLabState(labId);
+        const contract = lab.contracts[contractAddress];
+        const account = this.getActiveAccount();
+        if (!contract) throw new Error('컨트랙트를 찾을 수 없습니다.');
+
+        const fn = contract.parsed.functions.find(f => f.name === funcName);
+        if (!fn) throw new Error(`함수 ${funcName} 을(를) 찾을 수 없습니다.`);
+
+        if (fn.mutability === 'view' || fn.mutability === 'pure') {
+          const result = simulateViewFunction(contract, fn, argValues);
+          return {
+            kind: 'read',
+            result,
+            message: 'view/pure 함수 → 가스비 무료 (로컬에서 실행)'
+          };
+        }
+
+        const gasUsed = 21000 + Math.floor(Math.random() * 25001);
+        const feeEth = this.chargeGas(account, gasUsed);
+        const beforeState = JSON.parse(JSON.stringify(contract.state));
+        const writeResult = simulateWriteFunction(contract, fn, argValues);
+        const afterState = JSON.parse(JSON.stringify(contract.state));
+
+        const tx = this.createTxRecord({
+          from: account.address,
+          to: contractAddress,
+          type: 'write',
+          action: `${contract.name}.${fn.name}`,
+          gasUsed,
+          result: {
+            changed: writeResult.changed,
+            feeEth
+          }
+        });
+
+        lab.txs.unshift(tx);
+        lab.receipts.unshift({
+          transactionHash: tx.hash,
+          contractAddress,
+          gasUsed,
+          effectiveGasPrice: this.gasPrice,
+          blockNumber: this.blockNumber,
+          status: 1
+        });
+
+        account.nonce += 1;
+        this.mineBlock();
+        this.persist();
+
+        return {
+          kind: 'write',
+          gasUsed,
+          feeEth,
+          txHash: tx.hash,
+          blockNumber: tx.blockNumber,
+          beforeState,
+          afterState,
+          changed: writeResult.changed
+        };
+      },
+
+      getLatestContract(labId = 'lab1') {
+        const lab = this.getLabState(labId);
+        const latestAddress = lab.contractOrder[lab.contractOrder.length - 1];
+        if (!latestAddress) return null;
+        return lab.contracts[latestAddress];
+      },
+
+      getTransactions(labId = 'lab1') {
+        return this.getLabState(labId).txs;
+      },
+
+      getBlockchainStatus() {
+        return {
+          blockNumber: this.blockNumber,
+          timestamp: this.timestamp,
+          gasPrice: this.gasPrice,
+          chainId: this.chainId,
+          activeAccount: this.getActiveAccount(),
+          totalAccounts: this.accounts.length
+        };
+      }
+    };
+
+    function getCurrentCode() {
+      return document.getElementById('codeEditor').value;
+    }
+
+    function checkBraceBalance(code) {
+      let balance = 0;
+      for (const ch of code) {
+        if (ch === '{') balance += 1;
+        if (ch === '}') balance -= 1;
+        if (balance < 0) return false;
+      }
+      return balance === 0;
+    }
+
+    function parseSolidity(code) {
+      const result = {
+        ok: true,
+        warnings: [],
+        errors: [],
+        pragma: null,
+        contractName: null,
+        contractBody: '',
+        variables: [],
+        functions: [],
+        autoGetters: []
+      };
+
+      const pragmaMatch = code.match(/pragma\s+solidity\s+([^;]+);/);
+      if (!pragmaMatch) result.errors.push('pragma solidity 선언이 없습니다.');
+      else result.pragma = pragmaMatch[1].trim();
+
+      const contractMatch = code.match(/contract\s+([A-Za-z_]\w*)\s*\{/);
+      if (!contractMatch) result.errors.push('contract 선언이 없습니다.');
+      else result.contractName = contractMatch[1];
+
+      if (!checkBraceBalance(code)) result.errors.push('중괄호 짝이 맞지 않습니다.');
+
+      if (result.errors.length) {
+        result.ok = false;
+        return result;
+      }
+
+      const contractStart = code.indexOf(contractMatch[0]);
+      const openIndex = code.indexOf('{', contractStart);
+      let depth = 0;
+      let closeIndex = -1;
+      for (let i = openIndex; i < code.length; i++) {
+        if (code[i] === '{') depth++;
+        if (code[i] === '}') depth--;
+        if (depth === 0) {
+          closeIndex = i;
+          break;
+        }
+      }
+      result.contractBody = code.slice(openIndex + 1, closeIndex);
+
+      const topLevelMembers = getTopLevelMembers(result.contractBody);
+
+      const variableRegex = /^\s*(string|int|uint|uint256|int256|bool|address|bytes)\s+(public|private)\s+([A-Za-z_]\w*)\s*=\s*([^;]+);/m;
+      topLevelMembers.forEach(member => {
+        const m = member.match(variableRegex);
+        if (m) {
+          const variable = {
+            type: m[1],
+            visibility: m[2],
+            name: m[3],
+            initialValue: m[4].trim()
+          };
+          result.variables.push(variable);
+          if (variable.visibility === 'public') {
+            result.autoGetters.push({
+              name: variable.name,
+              sourceVariable: variable.name,
+              returnType: variable.type,
+              generated: true,
+              mutability: 'view'
+            });
+          }
+        }
+      });
+
+      const functionRegex = /function\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(public|private|internal|external)?\s*(view|pure|payable)?\s*(?:returns\s*\(([\s\S]*?)\))?\s*\{([\s\S]*?)\}/g;
+      let fnMatch;
+      while ((fnMatch = functionRegex.exec(result.contractBody)) !== null) {
+        const paramsRaw = fnMatch[2].trim();
+        const params = parseParameters(paramsRaw);
+        result.functions.push({
+          name: fnMatch[1],
+          params,
+          visibility: fnMatch[3] || '',
+          mutability: fnMatch[4] || '',
+          returns: (fnMatch[5] || '').trim(),
+          body: fnMatch[6].trim()
+        });
+      }
+
+      if (!result.variables.length) result.warnings.push('상태 변수 패턴을 찾지 못했습니다.');
+      if (!result.functions.length) result.warnings.push('함수 패턴을 찾지 못했습니다.');
+
+      return result;
+    }
+
+    function getTopLevelMembers(body) {
+      const members = [];
+      let current = '';
+      let depth = 0;
+      for (let i = 0; i < body.length; i++) {
+        const ch = body[i];
+        current += ch;
+        if (ch === '{') depth++;
+        if (ch === '}') depth--;
+        if (depth === 0 && (ch === ';' || ch === '}')) {
+          members.push(current.trim());
+          current = '';
+        }
+      }
+      if (current.trim()) members.push(current.trim());
+      return members;
+    }
+
+    function parseParameters(paramsRaw) {
+      if (!paramsRaw.trim()) return [];
+      return paramsRaw.split(',').map(chunk => {
+        const p = chunk.trim().replace(/\s+/g, ' ');
+        const parts = p.split(' ');
+        const name = parts[parts.length - 1];
+        const type = parts.slice(0, -1).join(' ');
+        return { raw: p, type, name };
+      });
+    }
+
+    function coerceLiteral(literal, type) {
+      const text = String(literal).trim();
+      if (type === 'string') {
+        const m = text.match(/^"(.*)"$/s);
+        return m ? m[1] : text;
+      }
+      if (type.startsWith('int') || type.startsWith('uint')) {
+        const n = Number(text);
+        return Number.isFinite(n) ? n : 0;
+      }
+      if (type === 'bool') {
+        return text === 'true';
+      }
+      if (type === 'address') {
+        return normalizeAddress(text.replace(/"/g, ''));
+      }
+      return text;
+    }
+
+    function coerceInputByType(value, type) {
+      const t = type.trim();
+      if (t.startsWith('string')) return String(value ?? '');
+      if (t.startsWith('int') || t.startsWith('uint')) return Number(value ?? 0);
+      if (t === 'bool') return value === true || value === 'true';
+      if (t.startsWith('address')) return normalizeAddress(String(value ?? ''));
+      return value;
+    }
+
+    function formatValueByType(value, type) {
+      if (type === 'string') return `"${value}"`;
+      if (type.startsWith('bool')) return String(Boolean(value));
+      return String(value);
+    }
+
+    function simulateViewFunction(contract, fn, argValues) {
+      const body = fn.body.trim();
+      const state = contract.state;
+
+      const variableReturn = body.match(/return\s+([A-Za-z_]\w*)\s*;/);
+      if (variableReturn) {
+        const key = variableReturn[1];
+        if (key in state) return { type: fn.returns || inferTypeFromValue(state[key]), value: state[key] };
+        const param = fn.params.find(p => p.name === key);
+        if (param) return { type: param.type, value: coerceInputByType(argValues[key], param.type) };
+      }
+
+      const stringReturn = body.match(/return\s+"([\s\S]*?)"\s*;/);
+      if (stringReturn) return { type: 'string', value: stringReturn[1] };
+
+      const numberReturn = body.match(/return\s+(-?\d+(?:\.\d+)?)\s*;/);
+      if (numberReturn) return { type: fn.returns || 'int', value: Number(numberReturn[1]) };
+
+      const boolReturn = body.match(/return\s+(true|false)\s*;/);
+      if (boolReturn) return { type: 'bool', value: boolReturn[1] === 'true' };
+
+      throw new Error('지원하는 view/pure 반환 패턴을 찾지 못했습니다.');
+    }
+
+    function inferTypeFromValue(value) {
+      if (typeof value === 'string') return 'string';
+      if (typeof value === 'boolean') return 'bool';
+      if (typeof value === 'number') return 'int';
+      return 'unknown';
+    }
+
+    function simulateWriteFunction(contract, fn, argValues) {
+      const state = contract.state;
+      const changed = [];
+      const statements = fn.body.split(';').map(s => s.trim()).filter(Boolean);
+
+      for (const stmt of statements) {
+        const assign = stmt.match(/^([A-Za-z_]\w*)\s*=\s*(.+)$/);
+        if (!assign) continue;
+
+        const target = assign[1];
+        const expr = assign[2].trim();
+        const before = state[target];
+        const after = evaluateExpression(expr, state, fn.params, argValues);
+        state[target] = after;
+        changed.push({ variable: target, before, after });
+      }
+
+      if (!changed.length) throw new Error('지원하는 상태 변경 패턴을 찾지 못했습니다.');
+      return { changed };
+    }
+
+    function evaluateExpression(expr, state, params, argValues) {
+      const cleaned = expr.trim();
+      if (/^".*"$/.test(cleaned)) return cleaned.slice(1, -1);
+      if (/^-?\d+(\.\d+)?$/.test(cleaned)) return Number(cleaned);
+      if (cleaned === 'true' || cleaned === 'false') return cleaned === 'true';
+
+      const param = params.find(p => p.name === cleaned);
+      if (param) return coerceInputByType(argValues[cleaned], param.type);
+
+      if (cleaned in state) return state[cleaned];
+
+      const arithmeticPattern = /^([A-Za-z_]\w*|-?\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*([A-Za-z_]\w*|-?\d+(?:\.\d+)?)$/;
+      const arithmetic = cleaned.match(arithmeticPattern);
+      if (arithmetic) {
+        const left = resolveOperand(arithmetic[1], state, params, argValues);
+        const op = arithmetic[2];
+        const right = resolveOperand(arithmetic[3], state, params, argValues);
+        if (op === '+') return left + right;
+        if (op === '-') return left - right;
+        if (op === '*') return left * right;
+        if (op === '/') return right === 0 ? 0 : left / right;
+      }
+
+      return cleaned;
+    }
+
+    function resolveOperand(token, state, params, argValues) {
+      if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
+      if (token in state) return Number(state[token]);
+      const param = params.find(p => p.name === token);
+      if (param) return Number(coerceInputByType(argValues[token], param.type));
+      return 0;
+    }
+
+    function simpleCompile(code, activeTab) {
+      const parsed = parseSolidity(code);
+      const expectedName = TAB_CONFIG[activeTab].label === 'HelloWorldBasic' ? 'HelloWorld' :
+                           TAB_CONFIG[activeTab].label === 'HelloWorldExtended' ? 'HelloWorld' :
+                           'HelloNumber';
+
+      if (parsed.contractName && parsed.contractName !== expectedName) {
+        parsed.warnings.push(`현재 탭 예제의 컨트랙트 이름은 보통 ${expectedName} 입니다.`);
+      }
+      if (activeTab === 'number' && /int\s+public\s+number/.test(code)) {
+        parsed.warnings.push('도전과제: private으로 바꾸고 getter/setter를 직접 작성해볼 수 있어요.');
+      }
+      parsed.ok = parsed.errors.length === 0;
+      return parsed;
+    }
+
+    function renderCompileOutput(parsed) {
+      const el = document.getElementById('compileOutput');
+      const summaryBadge = document.getElementById('editorContractSummary');
+
+      if (!parsed) {
+        el.innerHTML = `<strong>컴파일 결과</strong><div class="muted small" style="margin-top:6px;">아직 컴파일하지 않았습니다.</div>`;
+        summaryBadge.textContent = '미컴파일';
+        return;
+      }
+
+      const status = parsed.ok
+        ? `<div class="compile-ok" style="margin-top:6px;">컴파일 성공 — ${escapeHtml(parsed.contractName || 'Unknown')}</div>`
+        : `<div class="compile-err" style="margin-top:6px;">컴파일 실패</div>`;
+
+      const info = parsed.ok ? `
+        <div class="compile-info small" style="margin-top:8px;">변수 ${parsed.variables.length}개 / 함수 ${parsed.functions.length}개 / 자동 getter ${parsed.autoGetters.length}개</div>
+      ` : '';
+
+      const warnings = parsed.warnings.map(w => `<div class="compile-warn small">• ${escapeHtml(w)}</div>`).join('');
+      const errors = parsed.errors.map(e => `<div class="compile-err small">• ${escapeHtml(e)}</div>`).join('');
+
+      el.innerHTML = `<strong>컴파일 결과</strong>${status}${info}${warnings}${errors}`;
+      summaryBadge.textContent = parsed.ok ? `${parsed.contractName || 'Contract'} / 컴파일 완료` : '컴파일 오류';
+    }
+
+    function renderGuide() {
+      const list = document.getElementById('labGuide');
+      list.innerHTML = TAB_CONFIG[APP_STATE.activeTab].guide.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    }
+
+    function renderChallengeSection() {
+      const wrap = document.getElementById('challengeSection');
+      if (APP_STATE.activeTab !== 'number') {
+        wrap.innerHTML = '';
+        return;
+      }
+
+      wrap.innerHTML = `
+        <h4 class="section-title" style="margin-top:18px;">도전과제</h4>
+        <div class="challenge-box">
+          <div class="small">public vs private 비교표</div>
+          <table class="challenge-table">
+            <thead>
+              <tr><th>특성</th><th>public</th><th>private</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>외부 접근</td><td>가능</td><td>불가</td></tr>
+              <tr><td>자동 getter</td><td>자동 생성</td><td>직접 작성</td></tr>
+              <tr><td>컨트랙트 내부</td><td>접근 가능</td><td>접근 가능</td></tr>
+              <tr><td>상속 컨트랙트</td><td>접근 가능</td><td>접근 불가</td></tr>
+              <tr><td>사용 시나리오</td><td>공개 데이터</td><td>캡슐화/보안</td></tr>
+            </tbody>
+          </table>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-warning" id="showHintCodeBtn">힌트 코드 보기</button>
+            <button class="btn btn-success" id="applyHintCodeBtn">힌트 코드 적용</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('showHintCodeBtn').addEventListener('click', () => {
+        const code = TAB_CONFIG.number.hintCode;
+        appendConsole('info', '힌트 코드 보기', { lab: 'Lab 1', message: code });
+        toast('info', '힌트 코드를 콘솔에 기록했어.');
+      });
+
+      document.getElementById('applyHintCodeBtn').addEventListener('click', () => {
+        const { editor } = getEditorElements();
+        editor.value = TAB_CONFIG.number.hintCode;
+        refreshEditorUI();
+        saveCode();
+        toast('success', '힌트 코드를 에디터에 적용했어.');
+      });
+    }
+
+    function populateAccounts() {
+      const select = document.getElementById('accountSelect');
+      select.innerHTML = BlockchainEngine.accounts.map((acc, index) => (
+        `<option value="${index}">${escapeHtml(acc.label)} — ${escapeHtml(acc.address.slice(0, 10))}... — ${acc.balance.toFixed(6)} ETH</option>`
+      )).join('');
+      select.value = String(BlockchainEngine.activeAccountIndex);
+    }
+
+    function renderBlockchainStatus() {
+      populateAccounts();
+      const s = BlockchainEngine.getBlockchainStatus();
+      const el = document.getElementById('blockchainStatus');
+      el.innerHTML = `
+        <div class="info-item"><strong>Block Number</strong><div>${s.blockNumber}</div></div>
+        <div class="info-item"><strong>Timestamp</strong><div>${s.timestamp}</div></div>
+        <div class="info-item"><strong>Gas Price</strong><div>${s.gasPrice} Gwei</div></div>
+        <div class="info-item"><strong>Chain ID</strong><div>${s.chainId}</div></div>
+        <div class="info-item"><strong>Active Account</strong><div>${escapeHtml(s.activeAccount.label)}</div></div>
+        <div class="info-item"><strong>Balance / Nonce</strong><div>${s.activeAccount.balance.toFixed(6)} ETH / ${s.activeAccount.nonce}</div></div>
+        <div class="info-item"><strong>Address</strong><div class="mono tiny">${escapeHtml(s.activeAccount.address)}</div></div>
+      `;
+    }
+
+    function renderTransactionList() {
+      const txs = BlockchainEngine.getTransactions('lab1');
+      document.getElementById('txCountBadge').textContent = `${txs.length}건`;
+      const el = document.getElementById('transactionList');
+      if (!txs.length) {
+        el.innerHTML = `<div class="muted small">아직 트랜잭션이 없습니다.</div>`;
+        return;
+      }
+      el.innerHTML = txs.slice(0, 8).map(tx => `
+        <div class="tx-card">
+          <div class="kv"><div class="k">Action</div><div class="v">${escapeHtml(tx.action)}</div></div>
+          <div class="kv"><div class="k">Hash</div><div class="v mono tiny">${escapeHtml(tx.hash)}</div></div>
+          <div class="kv"><div class="k">From</div><div class="v mono tiny">${escapeHtml(tx.from)}</div></div>
+          <div class="kv"><div class="k">To</div><div class="v mono tiny">${escapeHtml(tx.to ?? '(contract creation)')}</div></div>
+          <div class="kv"><div class="k">Gas Used</div><div class="v">${tx.gasUsed}</div></div>
+          <div class="kv"><div class="k">Block</div><div class="v">${tx.blockNumber}</div></div>
+        </div>
+      `).join('');
+    }
+
+    function renderContractSummary() {
+      const latest = BlockchainEngine.getLatestContract('lab1');
+      const summary = document.getElementById('contractSummary');
+      const badge = document.getElementById('activeContractBadge');
+
+      if (!latest) {
+        badge.textContent = '배포 전';
+        summary.innerHTML = `
+          <div class="result-card">
+            <strong>컨트랙트를 배포하세요</strong>
+            <div class="small muted" style="margin-top:8px;">1 → 코드 확인</div>
+            <div class="small muted">2 → 컴파일</div>
+            <div class="small muted">3 → 배포</div>
+          </div>
+        `;
+        return;
+      }
+
+      badge.textContent = latest.name;
+      summary.innerHTML = `
+        <div class="contract-card">
+          <div class="kv"><div class="k">이름</div><div class="v">${escapeHtml(latest.name)}</div></div>
+          <div class="kv"><div class="k">주소</div><div class="v mono tiny">${escapeHtml(latest.address)}</div></div>
+          <div class="kv"><div class="k">배포 블록</div><div class="v">${latest.deployedAtBlock}</div></div>
+          <div class="kv"><div class="k">소유자</div><div class="v mono tiny">${escapeHtml(latest.owner)}</div></div>
+        </div>
+      `;
+    }
+
+    function renderStateVisualization() {
+      const latest = BlockchainEngine.getLatestContract('lab1');
+      const wrap = document.getElementById('stateVisualization');
+      if (!latest) {
+        wrap.innerHTML = `<div class="muted small">배포 후 상태 변수가 여기에 표시됩니다.</div>`;
+        return;
+      }
+
+      const vars = latest.parsed.variables;
+      if (!vars.length) {
+        wrap.innerHTML = `<div class="muted small">파싱된 상태 변수가 없습니다.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="state-grid">
+          ${vars.map(v => `
+            <div class="state-var ${APP_STATE.lastChangedVars.includes(v.name) ? 'flash' : ''}" data-var-name="${escapeHtml(v.name)}">
+              <strong>${escapeHtml(v.name)}</strong>
+              <div class="small" style="margin-top:6px;">현재 값: <span class="mono">${escapeHtml(formatValueByType(latest.state[v.name], v.type))}</span></div>
+              <div class="var-meta">
+                <span class="pill type">${escapeHtml(v.type)}</span>
+                <span class="pill ${escapeHtml(v.visibility)}">${escapeHtml(v.visibility)}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      setTimeout(() => { APP_STATE.lastChangedVars = []; renderStateVisualizationPassive(); }, 700);
+    }
+
+    function renderStateVisualizationPassive() {
+      const latest = BlockchainEngine.getLatestContract('lab1');
+      const wrap = document.getElementById('stateVisualization');
+      if (!latest || !latest.parsed.variables.length) return;
+      wrap.innerHTML = `
+        <div class="state-grid">
+          ${latest.parsed.variables.map(v => `
+            <div class="state-var" data-var-name="${escapeHtml(v.name)}">
+              <strong>${escapeHtml(v.name)}</strong>
+              <div class="small" style="margin-top:6px;">현재 값: <span class="mono">${escapeHtml(formatValueByType(latest.state[v.name], v.type))}</span></div>
+              <div class="var-meta">
+                <span class="pill type">${escapeHtml(v.type)}</span>
+                <span class="pill ${escapeHtml(v.visibility)}">${escapeHtml(v.visibility)}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderLastActionResult(html) {
+      document.getElementById('lastActionResult').innerHTML = html || '';
+    }
+
+    function renderInteractionPanel() {
+      const panel = document.getElementById('interactionPanel');
+      const latest = BlockchainEngine.getLatestContract('lab1');
+
+      if (!latest) {
+        panel.innerHTML = `<div class="muted small">배포 후 함수 호출 UI가 나타납니다.</div>`;
+        renderLastActionResult('');
+        return;
+      }
+
+      const parsed = latest.parsed;
+      const publicVariableButtons = parsed.variables
+        .filter(v => v.visibility === 'public')
+        .map(v => `
+          <div class="contract-card">
+            <strong>public 변수 getter</strong>
+            <div class="small muted" style="margin-top:6px;">${escapeHtml(v.name)} → 자동 getter 생성</div>
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn btn-success" data-public-getter="${escapeHtml(v.name)}">${escapeHtml(v.name)}</button>
+            </div>
+          </div>
+        `).join('');
+
+      const functionCards = parsed.functions.map(fn => {
+        const isRead = fn.mutability === 'view' || fn.mutability === 'pure';
+        return `
+          <div class="contract-card">
+            <strong>${escapeHtml(fn.name)}()</strong>
+            <div class="small muted" style="margin-top:6px;">${escapeHtml(fn.visibility || 'default')} ${escapeHtml(fn.mutability || 'state change')}</div>
+            ${fn.params.map(param => `
+              <div class="form-row" style="margin-top:10px;">
+                <label class="small muted">${escapeHtml(param.name)} <span class="tiny">(${escapeHtml(param.type)})</span></label>
+                ${param.type.trim() === 'bool'
+                  ? `<select class="select" data-fn-input="${escapeHtml(fn.name)}" data-param-name="${escapeHtml(param.name)}" data-param-type="${escapeHtml(param.type)}">
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>`
+                  : `<input class="input" data-fn-input="${escapeHtml(fn.name)}" data-param-name="${escapeHtml(param.name)}" data-param-type="${escapeHtml(param.type)}" />`
+                }
+              </div>
+            `).join('')}
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn ${isRead ? 'btn-success' : 'btn-warning'}" data-run-fn="${escapeHtml(fn.name)}">${escapeHtml(fn.name)} 실행</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      panel.innerHTML = publicVariableButtons + functionCards;
+      bindInteractionActions();
+    }
+
+    function collectFunctionArgs(fnName) {
+      const inputs = document.querySelectorAll(`[data-fn-input="${fnName}"]`);
+      const args = {};
+      inputs.forEach(input => {
+        args[input.dataset.paramName] = coerceInputByType(input.value, input.dataset.paramType);
+      });
+      return args;
+    }
+
+    function bindInteractionActions() {
+      const latest = BlockchainEngine.getLatestContract('lab1');
+      if (!latest) return;
+
+      document.querySelectorAll('[data-public-getter]').forEach(btn => {
+        btn.onclick = () => {
+          const variableName = btn.dataset.publicGetter;
+          try {
+            const variable = latest.parsed.variables.find(v => v.name === variableName);
+            const value = BlockchainEngine.callPublicGetter({
+              labId: 'lab1',
+              contractAddress: latest.address,
+              variableName
+            });
+
+            const html = `
+              <div class="result-card">
+                <strong>조회 결과</strong>
+                <div class="small" style="margin-top:8px;">${escapeHtml(variableName)} → <span class="mono">${escapeHtml(variable.type)}: ${escapeHtml(formatValueByType(value, variable.type))}</span></div>
+                <div class="small muted" style="margin-top:6px;">view/pure 함수 → 가스비 무료 (로컬에서 실행)</div>
+              </div>
+            `;
+            renderLastActionResult(html);
+            appendConsole('success', `public getter ${variableName} 조회 성공`, {
+              type: 'getter',
+              lab: 'Lab 1',
+              blockNumber: BlockchainEngine.blockNumber,
+              from: BlockchainEngine.getActiveAccount().address
+            });
+            markTabCompleted(TAB_CONFIG[APP_STATE.activeTab].progressKey);
+            toast('success', `${variableName} 값을 조회했어.`);
+          } catch (err) {
+            handleActionError(err);
+          }
+        };
+      });
+
+      document.querySelectorAll('[data-run-fn]').forEach(btn => {
+        btn.onclick = () => {
+          const fnName = btn.dataset.runFn;
+          const fn = latest.parsed.functions.find(f => f.name === fnName);
+          const args = collectFunctionArgs(fnName);
+
+          try {
+            const result = BlockchainEngine.executeFunction({
+              labId: 'lab1',
+              contractAddress: latest.address,
+              funcName: fnName,
+              argValues: args
+            });
+
+            if (result.kind === 'read') {
+              const html = `
+                <div class="result-card">
+                  <strong>함수 실행 결과</strong>
+                  <div class="small" style="margin-top:8px;">${escapeHtml(result.result.type)}: <span class="mono">${escapeHtml(formatValueByType(result.result.value, result.result.type))}</span></div>
+                  <div class="small muted" style="margin-top:6px;">${escapeHtml(result.message)}</div>
+                </div>
+              `;
+              renderLastActionResult(html);
+              appendConsole('success', `${fnName}() 실행 성공`, {
+                type: 'read',
+                lab: 'Lab 1',
+                blockNumber: BlockchainEngine.blockNumber,
+                from: BlockchainEngine.getActiveAccount().address
+              });
+              toast('success', `${fnName}() 실행 완료`);
+            } else {
+              APP_STATE.lastChangedVars = result.changed.map(c => c.variable);
+              const changes = result.changed.map(c => `
+                <div class="small">• ${escapeHtml(c.variable)}: <span class="mono">${escapeHtml(String(c.before))}</span> → <span class="mono">${escapeHtml(String(c.after))}</span></div>
+              `).join('');
+
+              const html = `
+                <div class="result-card">
+                  <strong>트랜잭션 성공</strong>
+                  <div class="small" style="margin-top:8px;">Gas Used: ${result.gasUsed}</div>
+                  <div class="small">Fee: ${result.feeEth.toFixed(12)} ETH</div>
+                  <div class="small">Tx Hash: <span class="mono">${escapeHtml(result.txHash)}</span></div>
+                  <div class="small">Block: ${result.blockNumber}</div>
+                  <div class="small" style="margin-top:8px;">상태 변경 내역</div>
+                  ${changes}
+                </div>
+              `;
+              renderLastActionResult(html);
+              appendConsole('tx', `${fnName}() 트랜잭션 성공`, {
+                type: 'tx',
+                lab: 'Lab 1',
+                blockNumber: result.blockNumber,
+                from: BlockchainEngine.getActiveAccount().address,
+                txHash: result.txHash,
+                gasUsed: result.gasUsed
+              });
+              toast('warning', `${fnName}() 실행으로 상태가 변경됐어.`);
+              renderBlockchainStatus();
+              renderTransactionList();
+              renderStateVisualization();
+            }
+
+            markTabCompleted(TAB_CONFIG[APP_STATE.activeTab].progressKey);
+          } catch (err) {
+            handleActionError(err);
+          }
+        };
+      });
+    }
+
+    function handleActionError(err) {
+      renderLastActionResult(`
+        <div class="result-card">
+          <strong>실행 오류</strong>
+          <div class="small compile-err" style="margin-top:8px;">${escapeHtml(err.message)}</div>
+        </div>
+      `);
+      appendConsole('error', err.message, {
+        type: 'error',
+        lab: 'Lab 1',
+        blockNumber: BlockchainEngine.blockNumber,
+        from: BlockchainEngine.getActiveAccount().address
+      });
+      toast('error', err.message);
+    }
+
+    function currentContractType() {
+      return TAB_CONFIG[APP_STATE.activeTab].label;
+    }
+
+    function compileCurrentCode() {
+      const parsed = simpleCompile(getCurrentCode(), APP_STATE.activeTab);
+      APP_STATE.lastCompile = parsed;
+      renderCompileOutput(parsed);
+
+      if (parsed.ok) {
+        appendConsole('success', `컴파일 성공 — ${parsed.contractName}`, {
+          type: 'compile',
+          lab: 'Lab 1',
+          blockNumber: BlockchainEngine.blockNumber,
+          from: BlockchainEngine.getActiveAccount().address
+        });
+        toast('success', '컴파일 성공');
+      } else {
+        appendConsole('error', `컴파일 실패 — ${parsed.errors.join(' / ')}`, {
+          type: 'compile',
+          lab: 'Lab 1',
+          blockNumber: BlockchainEngine.blockNumber,
+          from: BlockchainEngine.getActiveAccount().address
+        });
+        toast('error', '컴파일 실패');
+      }
+    }
+
+    function deploySelectedContract() {
+      if (!APP_STATE.lastCompile || !APP_STATE.lastCompile.ok) {
+        toast('warning', '먼저 컴파일을 성공시켜야 해.');
+        return;
+      }
+
+      try {
+        const result = BlockchainEngine.deployContract({
+          labId: 'lab1',
+          contractName: APP_STATE.lastCompile.contractName || currentContractType(),
+          parsedContract: APP_STATE.lastCompile
+        });
+
+        appendConsole('tx', `${result.contract.name} 배포 성공`, {
+          type: 'deploy',
+          lab: 'Lab 1',
+          blockNumber: result.blockNumber,
+          from: BlockchainEngine.getActiveAccount().address,
+          txHash: result.txHash,
+          contractAddress: result.contractAddress,
+          gasUsed: result.gasUsed
+        });
+
+        renderBlockchainStatus();
+        renderTransactionList();
+        renderContractSummary();
+        renderInteractionPanel();
+        renderStateVisualization();
+        renderLastActionResult(`
+          <div class="result-card">
+            <strong>배포 성공</strong>
+            <div class="small" style="margin-top:8px;">Contract Address: <span class="mono">${escapeHtml(result.contractAddress)}</span></div>
+            <div class="small">Tx Hash: <span class="mono">${escapeHtml(result.txHash)}</span></div>
+            <div class="small">Gas Used: ${result.gasUsed}</div>
+            <div class="small">Fee: ${result.feeEth.toFixed(12)} ETH</div>
+          </div>
+        `);
+
+        toast('success', '컨트랙트 배포 성공');
+        if (APP_STATE.activeTab === 'basic') markTabCompleted('tab1');
+      } catch (err) {
+        handleActionError(err);
+      }
+    }
+
+    function switchTab(tabName) {
+      APP_STATE.activeTab = tabName;
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      renderGuide();
+      renderChallengeSection();
+      loadCodeForActiveTab();
+      renderCompileOutput(null);
+      APP_STATE.lastCompile = null;
+      renderLastActionResult('');
+      appendConsole('info', `${TAB_CONFIG[tabName].label} 탭으로 전환`, {
+        type: 'tab',
+        lab: 'Lab 1',
+        blockNumber: BlockchainEngine.blockNumber,
+        from: BlockchainEngine.getActiveAccount().address
+      });
+    }
+
+    function goToHash(hash) {
+      location.hash = hash;
+      renderRoute();
+    }
+
+    function renderRoute() {
+      const hash = location.hash || '#launcher';
+      document.getElementById('launcherPage').classList.remove('active');
+      document.getElementById('lab1Page').classList.remove('active');
+
+      if (hash === '#lab1') document.getElementById('lab1Page').classList.add('active');
+      else document.getElementById('launcherPage').classList.add('active');
+    }
+
+    function setupLauncherCard() {
+      const card = document.getElementById('lab1Card');
+      const openLab = () => {
+        card.classList.add('mining');
+        setTimeout(() => {
+          card.classList.remove('mining');
+          goToHash('#lab1');
+        }, 620);
+      };
+
+      card.addEventListener('click', openLab);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLab();
+        }
+      });
+
+      document.getElementById('backToLauncherBtn').addEventListener('click', () => goToHash('#launcher'));
+    }
+
+    function appendConsole(type, message, details = {}) {
+      const body = document.getElementById('consoleBody');
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️', tx: '🔶' };
+      const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      const item = document.createElement('div');
+      item.className = `console-item ${type}`;
+      item.innerHTML = `
+        <div class="console-head">
+          <div class="console-title">${icons[type] || 'ℹ️'} <span>${escapeHtml(message)}</span></div>
+          <div class="tiny muted">${time}</div>
+        </div>
+        <div class="console-details">
+          <div>타입: ${escapeHtml(details.type || type)}</div>
+          <div>Lab: ${escapeHtml(details.lab || 'Lab 1')}</div>
+          <div>from 주소: ${escapeHtml(details.from || BlockchainEngine.getActiveAccount().address)}</div>
+          <div>블록 번호: ${escapeHtml(details.blockNumber ?? BlockchainEngine.blockNumber)}</div>
+          <div>시간: ${time}</div>
+          ${details.txHash ? `<div>Tx Hash: <span class="mono">${escapeHtml(details.txHash)}</span></div>` : ''}
+          ${details.contractAddress ? `<div>Contract: <span class="mono">${escapeHtml(details.contractAddress)}</span></div>` : ''}
+          ${details.gasUsed ? `<div>Gas Used: ${escapeHtml(details.gasUsed)}</div>` : ''}
+          ${details.message ? `<div style="margin-top:8px; white-space:pre-wrap;">${escapeHtml(details.message)}</div>` : ''}
+        </div>
+      `;
+      item.addEventListener('click', () => item.classList.toggle('open'));
+      body.prepend(item);
+      updateConsoleBadge();
+    }
+
+    function clearConsole() {
+      document.getElementById('consoleBody').innerHTML = '';
+      updateConsoleBadge();
+      toast('info', '콘솔을 비웠어.');
+    }
+
+    function updateConsoleBadge() {
+      const count = document.querySelectorAll('.console-item').length;
+      document.getElementById('consoleCountBadge').textContent = `${count} logs`;
+    }
+
+    function toggleConsole(force) {
+      if (typeof force === 'boolean') {
+        APP_STATE.consoleMinimized = force;
+      } else {
+        APP_STATE.consoleMinimized = !APP_STATE.consoleMinimized;
+      }
+      document.getElementById('consoleShell').classList.toggle('minimized', APP_STATE.consoleMinimized);
+      document.getElementById('toggleConsoleBtn').textContent = APP_STATE.consoleMinimized ? '최대화' : '최소화';
+      localStorage.setItem(STORAGE_KEYS.consoleMinimized, JSON.stringify(APP_STATE.consoleMinimized));
+    }
+
+    function toast(type, message) {
+      const wrap = document.getElementById('toastWrap');
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+      const node = document.createElement('div');
+      node.className = `toast ${type}`;
+      node.innerHTML = `
+        <div class="toast-head">${icons[type] || 'ℹ️'} <span>${escapeHtml(type.toUpperCase())}</span></div>
+        <div class="small">${escapeHtml(message)}</div>
+      `;
+      wrap.appendChild(node);
+      setTimeout(() => {
+        node.remove();
+      }, 3000);
+    }
+
+    function setupConsoleAndModal() {
+      document.getElementById('clearConsoleBtn').addEventListener('click', clearConsole);
+      document.getElementById('toggleConsoleBtn').addEventListener('click', () => toggleConsole());
+      document.getElementById('shortcutHelpBtn').addEventListener('click', () => openShortcutModal(true));
+      document.getElementById('closeShortcutModalBtn').addEventListener('click', () => openShortcutModal(false));
+      document.getElementById('shortcutModalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'shortcutModalBackdrop') openShortcutModal(false);
+      });
+
+      const minimized = JSON.parse(localStorage.getItem(STORAGE_KEYS.consoleMinimized) || 'false');
+      toggleConsole(Boolean(minimized));
+    }
+
+    function openShortcutModal(isOpen) {
+      document.getElementById('shortcutModalBackdrop').classList.toggle('active', isOpen);
+    }
+
+    function setupControls() {
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      document.getElementById('compileBtn').addEventListener('click', compileCurrentCode);
+      document.getElementById('deployBtn').addEventListener('click', deploySelectedContract);
+
+      document.getElementById('accountSelect').addEventListener('change', (e) => {
+        BlockchainEngine.setActiveAccount(Number(e.target.value));
+        renderBlockchainStatus();
+        appendConsole('info', `활성 계정 변경 — ${BlockchainEngine.getActiveAccount().label}`, {
+          type: 'account',
+          lab: 'Lab 1',
+          blockNumber: BlockchainEngine.blockNumber,
+          from: BlockchainEngine.getActiveAccount().address
+        });
+      });
+
+      document.getElementById('resetChainBtn').addEventListener('click', () => {
+        BlockchainEngine.resetAll();
+        APP_STATE.lastCompile = null;
+        renderCompileOutput(null);
+        renderBlockchainStatus();
+        renderTransactionList();
+        renderContractSummary();
+        renderInteractionPanel();
+        renderStateVisualization();
+        renderLastActionResult('');
+        toast('warning', '체인을 초기화했어.');
+        appendConsole('warning', '블록체인 엔진 초기화', {
+          type: 'reset',
+          lab: 'Lab 1',
+          blockNumber: BlockchainEngine.blockNumber,
+          from: BlockchainEngine.getActiveAccount().address
+        });
+      });
+
+      document.getElementById('resetProgressBtn').addEventListener('click', resetProgress);
+
+      document.addEventListener('keydown', (e) => {
+        const tag = document.activeElement?.tagName;
+        const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+        if (!isTyping && e.key === '1') {
+          e.preventDefault();
+          goToHash('#lab1');
+        }
+
+        if (e.key === 'Escape') {
+          openShortcutModal(false);
+          if (!isTyping) goToHash('#launcher');
+        }
+
+        if (e.ctrlKey && e.key === 'Enter') {
+          e.preventDefault();
+          compileCurrentCode();
+        }
+
+        if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+          e.preventDefault();
+          deploySelectedContract();
+        }
+
+        if (e.ctrlKey && e.key === '/') {
+          e.preventDefault();
+          openShortcutModal(true);
+        }
+
+        if (e.ctrlKey && e.key === '`') {
+          e.preventDefault();
+          toggleConsole();
+        }
+      });
+    }
+
+    function initBackgroundParticles() {
+      const canvas = document.getElementById('bgCanvas');
+      const ctx = canvas.getContext('2d');
+      let width = 0;
+      let height = 0;
+      let rafId = null;
+      let running = true;
+
+      const particles = Array.from({ length: 50 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 2.2 + 0.6,
+        vx: (Math.random() - 0.5) * 0.0006,
+        vy: (Math.random() - 0.5) * 0.0006,
+        alpha: Math.random() * 0.45 + 0.2
+      }));
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      function draw() {
+        if (!running) return;
+        ctx.clearRect(0, 0, width, height);
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0 || p.x > 1) p.vx *= -1;
+          if (p.y < 0 || p.y > 1) p.vy *= -1;
+
+          ctx.beginPath();
+          ctx.arc(p.x * width, p.y * height, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0, 212, 255, ${p.alpha})`;
+          ctx.fill();
+        });
+
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const a = particles[i];
+            const b = particles[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 0.18) {
+              ctx.beginPath();
+              ctx.moveTo(a.x * width, a.y * height);
+              ctx.lineTo(b.x * width, b.y * height);
+              ctx.strokeStyle = `rgba(124, 58, 237, ${0.12 * (1 - dist / 0.18)})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+        }
+
+        rafId = requestAnimationFrame(draw);
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        running = !document.hidden;
+        if (running) draw();
+        else if (rafId) cancelAnimationFrame(rafId);
+      });
+
+      window.addEventListener('resize', resize);
+      resize();
+      draw();
+    }
+
+    window.addEventListener('hashchange', renderRoute);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      BlockchainEngine.init();
+      updateLab1ProgressUI();
+      renderRoute();
+      setupLauncherCard();
+      setupEditor();
+      setupControls();
+      setupConsoleAndModal();
+      renderGuide();
+      renderChallengeSection();
+      renderCompileOutput(null);
+      renderBlockchainStatus();
+      renderTransactionList();
+      renderContractSummary();
+      renderInteractionPanel();
+      renderStateVisualization();
+      initBackgroundParticles();
+      appendConsole('info', '앱이 시작되었습니다.', {
+        type: 'boot',
+        lab: 'Lab 1',
+        blockNumber: BlockchainEngine.blockNumber,
+        from: BlockchainEngine.getActiveAccount().address
+      });
+      toast('info', '블록체인 실습 대시보드가 준비됐어.');
+    });
+  </script>
+</body>
+</html>
