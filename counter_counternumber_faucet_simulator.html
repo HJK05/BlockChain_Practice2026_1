@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Counter / CounterNumber / Faucet Simulator</title>
+  <style>
+    :root {
+      --bg-main: #0a0e27;
+      --bg-surface: #111633;
+      --bg-elevated: #1a1f4a;
+      --cyan: #00d4ff;
+      --purple: #7c3aed;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --text: #e5e7eb;
+      --muted: #aab2d5;
+      --border: rgba(255,255,255,.08);
+      --code-font: Consolas, "Fira Code", monospace;
+      --ui-font: "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(135deg, #0a0e27 0%, #0f1538 50%, #111633 100%);
+      color: var(--text);
+      font-family: var(--ui-font);
+    }
+    body { min-height: 100vh; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 24px; }
+    .header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+    .title h1 { margin:0 0 6px 0; color:var(--cyan); }
+    .title p { margin:0; color:var(--muted); }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,.03); font-size:.86rem; }
+    .btn { border:1px solid transparent; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:700; color:#fff; transition:transform .18s ease; }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-primary { background:linear-gradient(135deg, rgba(0,212,255,.18), rgba(124,58,237,.18)); border-color:rgba(0,212,255,.38); }
+    .btn-success { background:rgba(16,185,129,.14); border-color:rgba(16,185,129,.38); color:#d1fae5; }
+    .btn-warning { background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.38); color:#fef3c7; }
+    .btn-danger { background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.38); color:#fee2e2; }
+    .btn-ghost { background:rgba(255,255,255,.03); border-color:var(--border); }
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; background:rgba(17,22,51,.88); border:1px solid var(--border); border-radius:18px; padding:10px; margin-bottom:18px; }
+    .tab { border:1px solid transparent; background:transparent; color:var(--muted); padding:12px 16px; border-radius:12px; font-weight:700; cursor:pointer; }
+    .tab.active { color:#fff; border-color:rgba(0,212,255,.34); background:rgba(0,212,255,.08); box-shadow:0 0 12px rgba(0,212,255,.18); }
+    .grid { display:grid; grid-template-columns:minmax(440px,1.25fr) minmax(340px,.9fr) minmax(360px,1fr); gap:18px; align-items:start; }
+    @media (max-width: 1280px) { .grid { grid-template-columns:1fr; } }
+    .panel { background:rgba(17,22,51,.88); border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+    .panel-header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.06); background:linear-gradient(90deg, rgba(0,212,255,.06), rgba(124,58,237,.06)); }
+    .panel-header h3 { margin:0; font-size:1rem; }
+    .panel-body { padding:16px; }
+    .stack { display:flex; flex-direction:column; gap:18px; }
+    .editor-wrap { display:flex; flex-direction:column; min-height:700px; }
+    .editor-main { display:grid; grid-template-columns:64px 1fr; min-height:600px; background:#0b1028; }
+    .line-numbers { padding:18px 10px 18px 0; text-align:right; white-space:pre; overflow:hidden; color:#5f6b99; font:15px/1.6 var(--code-font); border-right:1px solid rgba(255,255,255,.06); }
+    .editor-area { position:relative; overflow:hidden; }
+    .editor-highlight, .editor-text { margin:0; padding:18px; font:15px/1.6 var(--code-font); white-space:pre; overflow:auto; tab-size:2; }
+    .editor-highlight { position:absolute; inset:0; pointer-events:none; color:#dbe7ff; }
+    .editor-text { position:relative; width:100%; height:100%; min-height:600px; background:transparent; color:transparent; caret-color:#fff; border:none; outline:none; resize:none; }
+    .editor-status { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:10px 14px; color:var(--muted); font-size:.92rem; border-top:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.02); }
+    .tok-key { color:var(--cyan); } .tok-type { color:#a78bfa; } .tok-str { color:var(--green); } .tok-num { color:var(--orange); } .tok-com { color:#7b849f; } .tok-fn { color:#60a5fa; }
+    .input, .select { width:100%; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.04); color:#fff; border:1px solid rgba(255,255,255,.1); }
+    .form-row { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    .small { font-size:.92rem; color:var(--muted); }
+    .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:12px; margin-bottom:10px; }
+    .kv { display:grid; grid-template-columns:112px 1fr; gap:8px; margin-bottom:6px; }
+    .mono { font-family:var(--code-font); word-break:break-all; }
+    .result { margin-top:12px; }
+    .success { color:#d1fae5; } .error { color:#fecaca; } .warning { color:#fde68a; } .info { color:#dbeafe; }
+    .state-item.flash { border-color:rgba(0,212,255,.42); box-shadow:0 0 16px rgba(0,212,255,.16); }
+    .console { max-height:320px; overflow:auto; }
+    .log-item { padding:12px; border-radius:12px; margin-bottom:10px; border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.03); }
+    .log-item.success { border-color:rgba(16,185,129,.24); }
+    .log-item.error { border-color:rgba(239,68,68,.24); }
+    .log-item.warning { border-color:rgba(245,158,11,.24); }
+    .log-item.info { border-color:rgba(0,212,255,.18); }
+    .toast-wrap { position:fixed; top:18px; right:18px; z-index:20; display:flex; flex-direction:column; gap:10px; }
+    .toast { min-width:260px; max-width:340px; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:rgba(17,22,51,.96); box-shadow:0 12px 24px rgba(0,0,0,.25); }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <div class="app">
+    <div class="header">
+      <div class="title">
+        <h1>Counter / CounterNumber / Faucet Simulator</h1>
+        <p>단일 HTML 파일 기반 Solidity 실습 시뮬레이터</p>
+      </div>
+      <div class="row">
+        <span class="badge" id="progressBadge">진행률 0/3</span>
+        <button class="btn btn-danger" id="resetProgressBtn">진행률 초기화</button>
+        <button class="btn btn-danger" id="resetChainBtn">체인 초기화</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="grid">
+      <div class="panel editor-wrap">
+        <div class="panel-header">
+          <h3>Solidity 코드</h3>
+          <div class="row">
+            <button class="btn btn-warning" id="resetCodeBtn">코드 초기화</button>
+            <button class="btn btn-primary" id="copyCodeBtn">코드 복사</button>
+          </div>
+        </div>
+        <div class="editor-main">
+          <div class="line-numbers" id="lineNumbers">1</div>
+          <div class="editor-area">
+            <pre class="editor-highlight" id="highlight"><code id="highlightCode"></code></pre>
+            <textarea class="editor-text" id="editor" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="editor-status">
+          <span id="cursorPos">줄 1, 열 1</span>
+          <span id="saveState">자동 저장됨</span>
+          <span id="compileState">미컴파일</span>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>컨트롤 패널</h3>
+            <span class="badge">가상 VM</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-row">
+              <label class="small">활성 계정</label>
+              <select class="select" id="accountSelect"></select>
+            </div>
+            <div class="row" style="margin-bottom:12px;">
+              <button class="btn btn-primary" id="compileBtn">컴파일</button>
+              <button class="btn btn-success" id="deployBtn">배포</button>
+            </div>
+            <div class="card" id="compileOutput">
+              <strong>컴파일 결과</strong>
+              <div class="small" style="margin-top:6px;">아직 컴파일하지 않았습니다.</div>
+            </div>
+
+            <h3 style="margin:16px 0 10px 0; font-size:1rem;">블록체인 상태</h3>
+            <div id="chainStatus"></div>
+
+            <h3 style="margin:16px 0 10px 0; font-size:1rem;">실습 가이드</h3>
+            <div id="guideBox"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>트랜잭션</h3>
+            <span class="badge" id="txBadge">0건</span>
+          </div>
+          <div class="panel-body" id="txList"></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>인터랙션 패널</h3>
+            <span class="badge" id="contractBadge">배포 전</span>
+          </div>
+          <div class="panel-body">
+            <div id="contractSummary"></div>
+            <div id="interaction"></div>
+            <div class="result" id="actionResult"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>상태 변수</h3></div>
+          <div class="panel-body" id="stateView"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>콘솔</h3>
+            <button class="btn btn-ghost" id="clearLogBtn">클리어</button>
+          </div>
+          <div class="panel-body console" id="logBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE = { progress:'sim-progress', editorPrefix:'sim-editor-', chain:'sim-chain' };
+    const LABS = {
+      counter: {
+        title:'Counter.sol', progressKey:'counter',
+        guide:['count 값이 public 상태 변수인지 확인','컴파일 후 배포','count() 조회, increment(), decrement() 실행'],
+        code:`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract Counter {
+    uint public count = 0;
+
+    function increment() public {
+        count = count + 1;
+    }
+
+    function decrement() public {
+        count = count - 1;
+    }
+}
+`
+      },
+      counternumber: {
+        title:'CounterNumber.sol', progressKey:'counternumber',
+        guide:['private 변수 _number 확인','getNumber()로 조회','setNumber(int)로 값 변경','public 과 private 차이 확인'],
+        code:`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract CounterNumber {
+    int private _number = 10;
+
+    function getNumber() public view returns (int) {
+        return _number;
+    }
+
+    function setNumber(int newNumber) public {
+        _number = newNumber;
+    }
+}
+`
+      },
+      faucet: {
+        title:'Faucet.sol', progressKey:'faucet',
+        guide:['owner, WITHDRAWAL_AMOUNT, LOCK_TIME, lastWithdrawalTime 구조 확인','deposit()으로 Faucet 잔액 충전','withdraw() 성공/실패 상황 확인','withdrawAll()은 owner만 실행 가능'],
+        code:`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract Faucet {
+    address payable public owner;
+    uint256 public WITHDRAWAL_AMOUNT = 1;
+    uint256 public LOCK_TIME = 86400;
+    mapping(address => uint256) public lastWithdrawalTime;
+
+    event Withdrawal(address indexed user, uint256 amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+
+    constructor() {
+        owner = payable(msg.sender);
+    }
+
+    function deposit() external payable onlyOwner {
+    }
+
+    function withdraw() external {
+        require(
+            block.timestamp >= lastWithdrawalTime[msg.sender] + LOCK_TIME,
+            "You must wait 24 hours between withdrawals."
+        );
+        require(
+            address(this).balance >= WITHDRAWAL_AMOUNT,
+            "Insufficient balance in the faucet."
+        );
+
+        lastWithdrawalTime[msg.sender] = block.timestamp;
+        payable(msg.sender).transfer(WITHDRAWAL_AMOUNT);
+        emit Withdrawal(msg.sender, WITHDRAWAL_AMOUNT);
+    }
+
+    function withdrawAll() external onlyOwner {
+        owner.transfer(address(this).balance);
+    }
+}
+`
+      }
+    };
+    const KEYWORDS = new Set(['pragma','solidity','contract','function','returns','public','private','view','pure','return','require','revert','modifier','constructor','external','payable','event','mapping','if','else','true','false']);
+    const TYPES = new Set(['string','int','uint','uint256','int256','bool','address','bytes']);
+    const STATE = { activeTab:'counter', lastCompile:null, lastChanged:[] };
+
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function toast(type,msg){
+      const wrap=document.getElementById('toastWrap');
+      const div=document.createElement('div');
+      div.className='toast';
+      div.innerHTML=`<strong>${esc(type.toUpperCase())}</strong><div style="margin-top:4px;">${esc(msg)}</div>`;
+      wrap.appendChild(div); setTimeout(()=>div.remove(),2500);
+    }
+    function log(type,msg,detail=''){
+      const box=document.getElementById('logBox');
+      const t=new Date().toLocaleTimeString('ko-KR',{hour12:false});
+      const div=document.createElement('div');
+      div.className=`log-item ${type}`;
+      div.innerHTML=`<strong>[${t}] ${esc(msg)}</strong>${detail?`<div style="margin-top:8px;" class="small mono">${esc(detail)}</div>`:''}`;
+      box.prepend(div);
+    }
+    function tokenize(code){
+      const patterns=[{t:'com',r:/\/\/[^\n]*|\/\*[\s\S]*?\*\//y},{t:'str',r:/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y},{t:'num',r:/\b\d+(?:\.\d+)?\b/y},{t:'id',r:/\b[A-Za-z_]\w*\b/y},{t:'ws',r:/\s+/y},{t:'sym',r:/./y}];
+      let i=0,out=[];
+      while(i<code.length){
+        let matched=false;
+        for(const p of patterns){
+          p.r.lastIndex=i;
+          const m=p.r.exec(code);
+          if(!m) continue;
+          matched=true;
+          const v=m[0]; i=p.r.lastIndex;
+          if(p.t==='id'){
+            const next=code.slice(i);
+            const fnLook=/^\s*\(/.test(next);
+            if(KEYWORDS.has(v)) out.push(`<span class="tok-key">${esc(v)}</span>`);
+            else if(TYPES.has(v)) out.push(`<span class="tok-type">${esc(v)}</span>`);
+            else if(fnLook) out.push(`<span class="tok-fn">${esc(v)}</span>`);
+            else out.push(esc(v));
+          } else if(p.t==='com') out.push(`<span class="tok-com">${esc(v)}</span>`);
+          else if(p.t==='str') out.push(`<span class="tok-str">${esc(v)}</span>`);
+          else if(p.t==='num') out.push(`<span class="tok-num">${esc(v)}</span>`);
+          else out.push(esc(v));
+          break;
+        }
+        if(!matched){ out.push(esc(code[i])); i++; }
+      }
+      return out.join('');
+    }
+    function getCursorText(editor){
+      const pos=editor.selectionStart, arr=editor.value.slice(0,pos).split('\n');
+      return `줄 ${arr.length}, 열 ${arr[arr.length-1].length+1}`;
+    }
+    function updateEditorUI(){
+      const editor=document.getElementById('editor');
+      document.getElementById('highlightCode').innerHTML=tokenize(editor.value||' ');
+      document.getElementById('lineNumbers').textContent=Array.from({length:editor.value.split('\n').length},(_,i)=>i+1).join('\n');
+      document.getElementById('cursorPos').textContent=getCursorText(editor);
+    }
+    function syncScroll(){
+      const editor=document.getElementById('editor');
+      document.getElementById('highlight').scrollTop=editor.scrollTop;
+      document.getElementById('highlight').scrollLeft=editor.scrollLeft;
+      document.getElementById('lineNumbers').scrollTop=editor.scrollTop;
+    }
+    function editorKey(){ return STORAGE.editorPrefix + STATE.activeTab; }
+    function loadEditor(){
+      const saved=localStorage.getItem(editorKey());
+      document.getElementById('editor').value=saved ?? LABS[STATE.activeTab].code;
+      updateEditorUI();
+      document.getElementById('saveState').textContent='자동 저장됨';
+    }
+    function saveEditor(){
+      localStorage.setItem(editorKey(), document.getElementById('editor').value);
+      document.getElementById('saveState').textContent='자동 저장됨';
+    }
+    function parseParams(raw){
+      const txt=raw.trim(); if(!txt) return [];
+      return txt.split(',').map(x=>{ const parts=x.trim().replace(/\s+/g,' ').split(' '); return {type:parts.slice(0,-1).join(' '), name:parts[parts.length-1]}; });
+    }
+    function bracesOk(code){
+      let d=0;
+      for(const ch of code){ if(ch==='{') d++; if(ch==='}') d--; if(d<0) return false; }
+      return d===0;
+    }
+    function topMembers(body){
+      let cur='',depth=0,arr=[];
+      for(let i=0;i<body.length;i++){
+        const ch=body[i]; cur+=ch;
+        if(ch==='{') depth++; if(ch==='}') depth--;
+        if(depth===0 && (ch===';' || ch==='}')){ arr.push(cur.trim()); cur=''; }
+      }
+      if(cur.trim()) arr.push(cur.trim());
+      return arr;
+    }
+    function extractConstructorBody(body){
+      const m=body.match(/constructor\s*\(([\s\S]*?)\)\s*\{([\s\S]*?)\}/);
+      return m ? m[2].trim() : '';
+    }
+    function parseSolidity(code){
+      const res={ok:true,errors:[],warnings:[],contractName:'',variables:[],functions:[],raw:code};
+      if(!/pragma\s+solidity\s+([^;]+);/.test(code)) res.errors.push('pragma solidity 선언이 없습니다.');
+      const c=code.match(/contract\s+([A-Za-z_]\w*)\s*\{/);
+      if(!c) res.errors.push('contract 선언이 없습니다.');
+      if(!bracesOk(code)) res.errors.push('중괄호 짝이 맞지 않습니다.');
+      if(res.errors.length){ res.ok=false; return res; }
+      res.contractName=c[1];
+      const start=code.indexOf(c[0]), open=code.indexOf('{',start);
+      let depth=0, close=-1;
+      for(let i=open;i<code.length;i++){
+        if(code[i]==='{') depth++;
+        if(code[i]==='}') depth--;
+        if(depth===0){ close=i; break; }
+      }
+      const body=code.slice(open+1, close);
+      const members=topMembers(body);
+      const varRegex=/^\s*(mapping\s*\([^)]+\)\s*|address\s+payable|address|string|int|uint|uint256|int256|bool)\s+(public|private)\s+([A-Za-z_]\w*)(?:\s*=\s*([^;]+))?\s*;/m;
+      for(const m of members){
+        const v=m.match(varRegex);
+        if(v) res.variables.push({type:v[1].trim(), visibility:v[2], name:v[3], initial:(v[4]??'').trim()});
+      }
+      const fnRegex=/function\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(public|private|external|internal)?\s*(view|pure|payable)?[\s\S]*?\{([\s\S]*?)\}/g;
+      let hit;
+      while((hit=fnRegex.exec(body))!==null){
+        res.functions.push({name:hit[1], params:parseParams(hit[2]), visibility:hit[3]||'', mutability:hit[4]||'', body:hit[5].trim()});
+      }
+      if(/constructor\s*\(/.test(body)) res.functions.push({name:'constructor', params:[], visibility:'', mutability:'', body:extractConstructorBody(body)});
+      if(/modifier\s+onlyOwner/.test(body)) res.warnings.push('onlyOwner modifier 포함');
+      return res;
+    }
+    function parseLiteral(type, raw){
+      const t=type.trim(), s=String(raw??'').trim();
+      if(t.startsWith('mapping')) return {};
+      if(t==='address payable' || t==='address') return s || '';
+      if(t==='string'){ const m=s.match(/^"(.*)"$/s); return m ? m[1] : ''; }
+      if(t.includes('int') || t.includes('uint')){ const n=Number(s); return Number.isFinite(n) ? n : 0; }
+      if(t==='bool') return s==='true';
+      return s;
+    }
+
+    const Chain={
+      blockNumber:1, timestamp:Math.floor(Date.now()/1000), gasPrice:20, activeAccountIndex:0,
+      accounts:[
+        {address:'0x5B38Da6a701c568545dCfcB03FcB875f56beddC4', label:'Account 1', balance:100, nonce:0},
+        {address:'0xAb8483F64d9C6d1EcF9b849Ae677dD3315835Cb2', label:'Account 2', balance:100, nonce:0},
+        {address:'0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db', label:'Account 3', balance:100, nonce:0}
+      ],
+      contracts:{}, order:[], txs:[],
+      save(){ localStorage.setItem(STORAGE.chain, JSON.stringify({blockNumber:this.blockNumber,timestamp:this.timestamp,gasPrice:this.gasPrice,activeAccountIndex:this.activeAccountIndex,accounts:this.accounts,contracts:this.contracts,order:this.order,txs:this.txs})); },
+      load(){ const s=localStorage.getItem(STORAGE.chain); if(!s) return; try{ Object.assign(this, JSON.parse(s)); }catch{} },
+      reset(){
+        localStorage.removeItem(STORAGE.chain);
+        this.blockNumber=1; this.timestamp=Math.floor(Date.now()/1000); this.gasPrice=20; this.activeAccountIndex=0;
+        this.accounts=[
+          {address:'0x5B38Da6a701c568545dCfcB03FcB875f56beddC4', label:'Account 1', balance:100, nonce:0},
+          {address:'0xAb8483F64d9C6d1EcF9b849Ae677dD3315835Cb2', label:'Account 2', balance:100, nonce:0},
+          {address:'0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db', label:'Account 3', balance:100, nonce:0}
+        ];
+        this.contracts={}; this.order=[]; this.txs=[];
+      },
+      activeAccount(){ return this.accounts[this.activeAccountIndex]; },
+      mine(){ this.blockNumber+=1; this.timestamp+=12; },
+      randHex(n){ const c='0123456789abcdef'; let s=''; for(let i=0;i<n;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; },
+      txHash(){ return '0x'+this.randHex(64); },
+      addr(){ return '0x'+this.randHex(40); },
+      gasFee(gas){ return (gas*this.gasPrice)/1_000_000_000; },
+      charge(gas){
+        const acct=this.activeAccount(); const fee=this.gasFee(gas);
+        if(acct.balance < fee) throw new Error('잔액 부족: 가스비를 지불할 수 없습니다.');
+        acct.balance=Number((acct.balance-fee).toFixed(12));
+        return fee;
+      },
+      deploy(parsed){
+        const gas=180000+Math.floor(Math.random()*20000), fee=this.charge(gas), acct=this.activeAccount(), address=this.addr(), state={};
+        for(const v of parsed.variables){
+          if(v.type.startsWith('mapping')) state[v.name]={};
+          else state[v.name]=parseLiteral(v.type, v.initial);
+        }
+        if(parsed.contractName==='Faucet'){
+          if('owner' in state) state.owner=acct.address;
+          state.WITHDRAWAL_AMOUNT=1;
+          state.LOCK_TIME=86400;
+          if(!state.lastWithdrawalTime) state.lastWithdrawalTime={};
+          state.__balance=0;
+        }
+        const contract={address,name:parsed.contractName,owner:acct.address,deployBlock:this.blockNumber,parsed,state};
+        this.contracts[address]=contract; this.order.push(address);
+        const tx={hash:this.txHash(), action:`${parsed.contractName} deploy`, from:acct.address, to:'(create)', gas, block:this.blockNumber};
+        this.txs.unshift(tx); acct.nonce+=1; this.mine(); this.save();
+        return {contract, fee, gas, tx};
+      },
+      latest(){ const a=this.order[this.order.length-1]; return a ? this.contracts[a] : null; },
+      runPublicGetter(name){
+        const c=this.latest(); if(!c) throw new Error('배포된 컨트랙트가 없습니다.');
+        if(!(name in c.state)) throw new Error('해당 변수를 찾을 수 없습니다.');
+        return c.state[name];
+      },
+      recordWrite(action, gas){
+        const acct=this.activeAccount(), fee=this.charge(gas), tx={hash:this.txHash(), action, from:acct.address, to:this.latest().address, gas, block:this.blockNumber};
+        this.txs.unshift(tx); acct.nonce+=1; this.mine(); this.save();
+        return {fee, tx};
+      },
+      runCounter(c, fn){
+        if(fn.name==='increment'){
+          const before=c.state.count; c.state.count+=1;
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('increment()', gas);
+          return {kind:'write', changed:[{variable:'count', before, after:c.state.count}], gas, fee, tx};
+        }
+        if(fn.name==='decrement'){
+          const before=c.state.count; c.state.count-=1;
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('decrement()', gas);
+          return {kind:'write', changed:[{variable:'count', before, after:c.state.count}], gas, fee, tx};
+        }
+        throw new Error('지원하지 않는 함수입니다.');
+      },
+      runCounterNumber(c, fn, args){
+        if(fn.name==='getNumber') return {kind:'read', type:'int', value:c.state._number, message:'view 함수 → 가스비 무료'};
+        if(fn.name==='setNumber'){
+          const before=c.state._number; c.state._number=Number(args.newNumber ?? 0);
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('setNumber()', gas);
+          return {kind:'write', changed:[{variable:'_number', before, after:c.state._number}], gas, fee, tx};
+        }
+        throw new Error('지원하지 않는 함수입니다.');
+      },
+      runFaucet(c, fn, args){
+        const acct=this.activeAccount(), amount=c.state.WITHDRAWAL_AMOUNT ?? 1, lock=c.state.LOCK_TIME ?? 86400;
+        if(fn.name==='deposit'){
+          if(acct.address !== c.state.owner) throw new Error('Only owner');
+          const value=Number(args.depositValue ?? 0);
+          if(!(value>0)) throw new Error('입금 금액은 0보다 커야 합니다.');
+          if(acct.balance < value) throw new Error('계정 잔액이 부족합니다.');
+          const before=c.state.__balance;
+          acct.balance=Number((acct.balance-value).toFixed(12));
+          c.state.__balance=Number((c.state.__balance+value).toFixed(12));
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('deposit()', gas);
+          return {kind:'write', changed:[{variable:'__balance', before, after:c.state.__balance}], gas, fee, tx};
+        }
+        if(fn.name==='withdraw'){
+          const last=c.state.lastWithdrawalTime[acct.address] || 0;
+          if(this.timestamp < last + lock) throw new Error('You must wait 24 hours between withdrawals.');
+          if(c.state.__balance < amount) throw new Error('Insufficient balance in the faucet.');
+          const beforeBal=c.state.__balance;
+          c.state.lastWithdrawalTime[acct.address]=this.timestamp;
+          c.state.__balance=Number((c.state.__balance-amount).toFixed(12));
+          acct.balance=Number((acct.balance+amount).toFixed(12));
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('withdraw()', gas);
+          return {kind:'write', changed:[{variable:'__balance', before:beforeBal, after:c.state.__balance},{variable:'lastWithdrawalTime', before:last, after:c.state.lastWithdrawalTime[acct.address]}], gas, fee, tx, event:`Withdrawal(${acct.address}, ${amount})`};
+        }
+        if(fn.name==='withdrawAll'){
+          if(acct.address !== c.state.owner) throw new Error('Only owner');
+          const before=c.state.__balance;
+          acct.balance=Number((acct.balance+c.state.__balance).toFixed(12));
+          c.state.__balance=0;
+          const gas=21000+Math.floor(Math.random()*25001), {fee,tx}=this.recordWrite('withdrawAll()', gas);
+          return {kind:'write', changed:[{variable:'__balance', before, after:0}], gas, fee, tx};
+        }
+        throw new Error('지원하지 않는 Faucet 함수입니다.');
+      },
+      runFunction(name, args){
+        const c=this.latest(); if(!c) throw new Error('배포된 컨트랙트가 없습니다.');
+        const fn=c.parsed.functions.find(f=>f.name===name); if(!fn) throw new Error('해당 함수를 찾을 수 없습니다.');
+        if(c.name==='Counter') return this.runCounter(c, fn);
+        if(c.name==='CounterNumber') return this.runCounterNumber(c, fn, args);
+        if(c.name==='Faucet') return this.runFaucet(c, fn, args);
+        throw new Error('지원하지 않는 컨트랙트입니다.');
+      }
+    };
+
+    function renderTabs(){
+      const done=getProgress();
+      const tabs=document.getElementById('tabs');
+      tabs.innerHTML=Object.entries(LABS).map(([k,v])=>`<button class="tab ${STATE.activeTab===k?'active':''}" data-tab="${k}">${esc(v.title)} ${done.includes(v.progressKey)?'✓':''}</button>`).join('');
+      tabs.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>{ STATE.activeTab=btn.dataset.tab; STATE.lastCompile=null; renderTabs(); renderGuide(); loadEditor(); renderCompile(null); });
+    }
+    function renderGuide(){ document.getElementById('guideBox').innerHTML=LABS[STATE.activeTab].guide.map(x=>`<div class="card small">• ${esc(x)}</div>`).join(''); }
+    function renderAccounts(){
+      const sel=document.getElementById('accountSelect');
+      sel.innerHTML=Chain.accounts.map((a,i)=>`<option value="${i}">${esc(a.label)} - ${a.balance.toFixed(6)} ETH</option>`).join('');
+      sel.value=String(Chain.activeAccountIndex);
+    }
+    function renderChain(){
+      renderAccounts();
+      const a=Chain.activeAccount();
+      document.getElementById('chainStatus').innerHTML=`<div class="card"><div class="kv"><div>Block</div><div>${Chain.blockNumber}</div></div><div class="kv"><div>Timestamp</div><div>${Chain.timestamp}</div></div><div class="kv"><div>Gas Price</div><div>${Chain.gasPrice} Gwei</div></div><div class="kv"><div>Active</div><div>${esc(a.label)}</div></div><div class="kv"><div>Address</div><div class="mono">${esc(a.address)}</div></div><div class="kv"><div>Balance / Nonce</div><div>${a.balance.toFixed(6)} ETH / ${a.nonce}</div></div></div>`;
+    }
+    function renderCompile(parsed){
+      const out=document.getElementById('compileOutput'), state=document.getElementById('compileState');
+      if(!parsed){ out.innerHTML=`<strong>컴파일 결과</strong><div class="small" style="margin-top:6px;">아직 컴파일하지 않았습니다.</div>`; state.textContent='미컴파일'; return; }
+      const status=parsed.ok?`<div class="success" style="margin-top:8px;">컴파일 성공 - ${esc(parsed.contractName)}</div>`:`<div class="error" style="margin-top:8px;">컴파일 실패</div>`;
+      out.innerHTML=`<strong>컴파일 결과</strong>${status}<div class="small" style="margin-top:8px;">변수 ${parsed.variables.length}개 / 함수 ${parsed.functions.filter(f=>f.name!=='constructor').length}개</div>${parsed.errors.map(e=>`<div class="error small">• ${esc(e)}</div>`).join('')}${parsed.warnings.map(w=>`<div class="warning small">• ${esc(w)}</div>`).join('')}`;
+      state.textContent=parsed.ok?`${parsed.contractName} / 컴파일 완료`:'컴파일 오류';
+    }
+    function renderSummary(){
+      const c=Chain.latest();
+      document.getElementById('contractBadge').textContent=c?c.name:'배포 전';
+      document.getElementById('contractSummary').innerHTML=c?`<div class="card"><div class="kv"><div>이름</div><div>${esc(c.name)}</div></div><div class="kv"><div>주소</div><div class="mono">${esc(c.address)}</div></div><div class="kv"><div>배포 블록</div><div>${c.deployBlock}</div></div><div class="kv"><div>Owner</div><div class="mono">${esc(c.owner)}</div></div></div>`:`<div class="card">컴파일 → 배포 후 함수 호출 UI가 표시됩니다.</div>`;
+    }
+    function renderState(){
+      const c=Chain.latest(), box=document.getElementById('stateView');
+      if(!c){ box.innerHTML='<div class="card">배포 후 상태가 표시됩니다.</div>'; return; }
+      box.innerHTML=Object.entries(c.state).map(([k,v])=>`<div class="card state-item ${STATE.lastChanged.includes(k)?'flash':''}"><div class="kv"><div>변수</div><div>${esc(k)}</div></div><div class="kv"><div>값</div><div class="mono">${esc(typeof v==='object'?JSON.stringify(v):String(v))}</div></div></div>`).join('') || '<div class="card">상태 변수가 없습니다.</div>';
+      if(STATE.lastChanged.length) setTimeout(()=>{ STATE.lastChanged=[]; renderState(); },700);
+    }
+    function renderTxs(){
+      document.getElementById('txBadge').textContent=`${Chain.txs.length}건`;
+      document.getElementById('txList').innerHTML=Chain.txs.length?Chain.txs.slice(0,8).map(tx=>`<div class="card"><div class="kv"><div>Action</div><div>${esc(tx.action)}</div></div><div class="kv"><div>Hash</div><div class="mono">${esc(tx.hash)}</div></div><div class="kv"><div>Gas</div><div>${tx.gas}</div></div><div class="kv"><div>Block</div><div>${tx.block}</div></div></div>`).join(''):'<div class="card">아직 트랜잭션이 없습니다.</div>';
+    }
+    function formatValue(v){ return typeof v==='object' ? JSON.stringify(v) : String(v); }
+    function setResult(type,title,detail=''){
+      const cls=type==='error'?'error':type==='warning'?'warning':'success';
+      document.getElementById('actionResult').innerHTML=`<div class="card"><strong class="${cls}">${esc(title)}</strong>${detail?`<div style="margin-top:8px; white-space:pre-wrap;" class="small mono">${esc(detail)}</div>`:''}</div>`;
+      log(type==='warning'?'warning':type==='error'?'error':'success', title, detail);
+      toast(type==='warning'?'warning':type==='error'?'error':'success', title);
+    }
+    function renderInteraction(){
+      const c=Chain.latest(), box=document.getElementById('interaction');
+      if(!c){ box.innerHTML='<div class="card">배포 후 인터랙션 패널이 생성됩니다.</div>'; return; }
+      let html='';
+      for(const v of c.parsed.variables.filter(v=>v.visibility==='public')){
+        html += `<div class="card"><strong>public getter</strong><div class="small" style="margin:6px 0 10px 0;">${esc(v.name)}()</div><button class="btn btn-success" data-getter="${v.name}">${esc(v.name)} 조회</button></div>`;
+      }
+      if(c.name==='Faucet'){
+        html += `<div class="card"><strong>lastWithdrawalTime 조회</strong><div class="small" style="margin:6px 0 10px 0;">현재 활성 계정 기준</div><button class="btn btn-success" data-faucet-last="1">lastWithdrawalTime[msg.sender]</button></div>`;
+      }
+      for(const fn of c.parsed.functions.filter(f=>f.name!=='constructor')){
+        const read=fn.mutability==='view' || fn.mutability==='pure';
+        html += `<div class="card"><strong>${esc(fn.name)}()</strong>${fn.params.map(p=>`<div class="form-row" style="margin-top:10px;"><label class="small">${esc(p.name)} (${esc(p.type)})</label><input class="input" data-fn="${fn.name}" data-param="${p.name}" /></div>`).join('')}${c.name==='Faucet' && fn.name==='deposit'?`<div class="form-row" style="margin-top:10px;"><label class="small">depositValue (ETH)</label><input class="input" data-fn="${fn.name}" data-param="depositValue" value="3" /></div>`:''}<button class="btn ${read?'btn-success':'btn-warning'}" data-run="${fn.name}">${esc(fn.name)} 실행</button></div>`;
+      }
+      box.innerHTML=html;
+      box.querySelectorAll('[data-getter]').forEach(btn=>btn.onclick=()=>{ try{ const value=Chain.runPublicGetter(btn.dataset.getter); setResult('success', `${btn.dataset.getter} = ${formatValue(value)}`, 'view 함수 → 가스비 무료'); progressHit(); }catch(e){ setResult('error', e.message); } });
+      box.querySelectorAll('[data-faucet-last]').forEach(btn=>btn.onclick=()=>{ try{ const c=Chain.latest(), addr=Chain.activeAccount().address, value=(c.state.lastWithdrawalTime||{})[addr]||0; setResult('success', `lastWithdrawalTime[msg.sender] = ${value}`, 'mapping 조회'); progressHit(); }catch(e){ setResult('error', e.message); } });
+      box.querySelectorAll('[data-run]').forEach(btn=>btn.onclick=()=>{ const name=btn.dataset.run, args={}; box.querySelectorAll(`[data-fn="${name}"]`).forEach(inp=>args[inp.dataset.param]=inp.value); try{ const r=Chain.runFunction(name,args); if(r.kind==='read'){ setResult('success', `${name}() → ${formatValue(r.value)}`, r.message||''); } else { STATE.lastChanged=r.changed.map(x=>x.variable); let detail=`Gas Used: ${r.gas}\nFee: ${r.fee.toFixed(12)} ETH\nTx: ${r.tx.hash}`; if(r.event) detail += `\nEvent: ${r.event}`; setResult('warning', `${name}() 트랜잭션 성공`, detail); renderChain(); renderTxs(); renderState(); if(r.event) log('info','Event 발생', r.event); } progressHit(); Chain.save(); }catch(e){ setResult('error', e.message); log('error','실행 실패', e.message); toast('error', e.message); } });
+    }
+    function getProgress(){ return JSON.parse(localStorage.getItem(STORAGE.progress) || '[]'); }
+    function progressHit(){ const done=getProgress(), key=LABS[STATE.activeTab].progressKey; if(!done.includes(key)){ done.push(key); localStorage.setItem(STORAGE.progress, JSON.stringify(done)); } renderProgress(); renderTabs(); }
+    function renderProgress(){ const done=getProgress(); document.getElementById('progressBadge').textContent=`진행률 ${done.length}/3`; }
+    function resetProgress(){ localStorage.removeItem(STORAGE.progress); renderProgress(); renderTabs(); toast('warning','진행률을 초기화했습니다.'); }
+    function compileCurrent(){
+      const parsed=parseSolidity(document.getElementById('editor').value);
+      STATE.lastCompile=parsed; renderCompile(parsed);
+      if(parsed.ok){ log('success', `컴파일 성공 - ${parsed.contractName}`); toast('success','컴파일 성공'); }
+      else { log('error', '컴파일 실패', parsed.errors.join(' / ')); toast('error','컴파일 실패'); }
+    }
+    function deployCurrent(){
+      if(!STATE.lastCompile || !STATE.lastCompile.ok){ toast('warning','먼저 컴파일을 성공시켜야 합니다.'); return; }
+      try{
+        const {contract,fee,gas,tx}=Chain.deploy(STATE.lastCompile);
+        renderChain(); renderSummary(); renderInteraction(); renderState(); renderTxs();
+        setResult('success', `${contract.name} 배포 성공`, `Address: ${contract.address}\nGas Used: ${gas}\nFee: ${fee.toFixed(12)} ETH\nTx: ${tx.hash}`);
+        Chain.save();
+      }catch(e){ setResult('error', e.message); }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      Chain.load();
+      renderTabs(); renderGuide(); renderProgress(); renderChain(); renderSummary(); renderState(); renderTxs(); loadEditor(); renderInteraction();
+
+      const editor=document.getElementById('editor');
+      editor.addEventListener('input', ()=>{ updateEditorUI(); localStorage.setItem(editorKey(), editor.value); document.getElementById('saveState').textContent='자동 저장됨'; });
+      editor.addEventListener('scroll', syncScroll);
+      editor.addEventListener('click', ()=>document.getElementById('cursorPos').textContent=getCursorText(editor));
+      editor.addEventListener('keyup', ()=>document.getElementById('cursorPos').textContent=getCursorText(editor));
+      editor.addEventListener('keydown', e=>{
+        if(e.key==='Tab'){ e.preventDefault(); const s=editor.selectionStart, t=editor.selectionEnd; editor.value=editor.value.slice(0,s)+'  '+editor.value.slice(t); editor.selectionStart=editor.selectionEnd=s+2; updateEditorUI(); saveEditor(); }
+      });
+
+      document.getElementById('accountSelect').addEventListener('change', e=>{ Chain.activeAccountIndex=Number(e.target.value); Chain.save(); renderChain(); log('info', `활성 계정 변경 - ${Chain.activeAccount().label}`); });
+      document.getElementById('compileBtn').onclick=compileCurrent;
+      document.getElementById('deployBtn').onclick=deployCurrent;
+      document.getElementById('resetCodeBtn').onclick=()=>{ editor.value=LABS[STATE.activeTab].code; updateEditorUI(); saveEditor(); toast('info','코드를 초기화했습니다.'); };
+      document.getElementById('copyCodeBtn').onclick=async()=>{ try{ await navigator.clipboard.writeText(editor.value); toast('success','코드를 복사했습니다.'); }catch{ toast('error','복사 실패'); } };
+      document.getElementById('resetChainBtn').onclick=()=>{ Chain.reset(); Chain.save(); renderChain(); renderSummary(); renderInteraction(); renderState(); renderTxs(); setResult('warning','가상 체인을 초기화했습니다.'); };
+      document.getElementById('resetProgressBtn').onclick=resetProgress;
+      document.getElementById('clearLogBtn').onclick=()=>{ document.getElementById('logBox').innerHTML=''; toast('info','콘솔을 비웠습니다.'); };
+
+      document.addEventListener('keydown', e=>{
+        if(e.ctrlKey && e.key==='Enter'){ e.preventDefault(); compileCurrent(); }
+        if(e.ctrlKey && e.shiftKey && (e.key==='D' || e.key==='d')){ e.preventDefault(); deployCurrent(); }
+      });
+    });
+  </script>
+</body>
+</html>
