@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sepolia Faucet</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #060b1b;
+      --panel: #121c44;
+      --panel-2: #0d1534;
+      --line: rgba(255,255,255,0.08);
+      --text: #eef3ff;
+      --muted: #aeb8d8;
+      --primary: #6ea7ff;
+      --primary-2: #4d79e6;
+      --danger: #ff8080;
+      --ok: #89e3a6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #09122d 0%, var(--bg) 60%);
+      min-height: 100vh;
+    }
+    .wrap {
+      width: min(1120px, calc(100vw - 40px));
+      margin: 36px auto 64px;
+    }
+    h1 { font-size: 54px; margin: 0 0 10px; font-weight: 800; }
+    .subtitle { color: var(--muted); font-size: 18px; margin-bottom: 28px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(18,28,68,.96), rgba(13,21,52,.96));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.24);
+    }
+    .card h2 { margin: 0 0 18px; font-size: 22px; }
+    .kv {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px 14px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+    .k { color: var(--muted); font-size: 18px; }
+    .v {
+      font-size: 18px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0 8px; }
+    button {
+      border: none;
+      border-radius: 18px;
+      padding: 16px 24px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--primary-2);
+      transition: transform .08s ease, opacity .2s ease, background .2s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button.secondary { background: #33468d; }
+    button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+    .hint { color: var(--muted); font-size: 16px; line-height: 1.5; }
+    .status-card { margin-top: 18px; }
+    .status-box {
+      margin-top: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .status-box.error { color: var(--danger); }
+    .status-box.success { color: var(--ok); }
+    .chart {
+      width: 100%;
+      height: 220px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    a { color: #9bc2ff; }
+    .small { font-size: 15px; color: var(--muted); }
+    .inline-code {
+      font-family: Consolas, monospace;
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+    }
+    @media (max-width: 900px) {
+      h1 { font-size: 42px; }
+      .grid { grid-template-columns: 1fr; }
+      .kv { grid-template-columns: 120px 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Sepolia Faucet</h1>
+    <div class="subtitle">MetaMask로 지갑을 연결하고, Sepolia에 배포된 Faucet 컨트랙트에서 <strong>0.01 ETH</strong>를 요청하는 예제 페이지입니다.</div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>지갑 연결</h2>
+        <div class="kv">
+          <div class="k">네트워크</div>
+          <div class="v" id="network">-</div>
+          <div class="k">내 지갑 주소</div>
+          <div class="v" id="walletAddress">-</div>
+          <div class="k">ETH 잔액</div>
+          <div class="v" id="walletBalance">-</div>
+          <div class="k">현재 Nonce</div>
+          <div class="v" id="walletNonce">-</div>
+        </div>
+        <div class="actions">
+          <button id="connectBtn">MetaMask 연결</button>
+          <button id="switchBtn" class="secondary">Sepolia로 전환</button>
+        </div>
+        <div class="hint">MetaMask가 설치되어 있어야 하고, 배포에 사용한 계정으로 접속해야 합니다.</div>
+      </section>
+
+      <section class="card">
+        <h2>Faucet 정보</h2>
+        <div class="kv">
+          <div class="k">컨트랙트 주소</div>
+          <div class="v" id="contractAddressView">-</div>
+          <div class="k">Faucet 잔액</div>
+          <div class="v" id="faucetBalance">-</div>
+          <div class="k">요청 금액</div>
+          <div class="v">0.01 ETH</div>
+          <div class="k">다음 청구까지 남은 시간</div>
+          <div class="v" id="nextClaim">-</div>
+        </div>
+        <div class="actions">
+          <button id="refreshBtn" class="secondary">잔액 새로고침</button>
+          <button id="claimBtn">0.01 ETH 요청</button>
+        </div>
+        <div class="small">배포 성공 화면의 <span class="inline-code">Created</span> 옆 주소가 컨트랙트 주소입니다. 지갑 주소와 다릅니다.</div>
+      </section>
+    </div>
+
+    <section class="card status-card">
+      <h2>트랜잭션 결과</h2>
+      <div id="statusBox" class="status-box">아직 실행된 작업이 없습니다.</div>
+    </section>
+
+    <section class="card status-card">
+      <h2>Faucet Balance Chart (Bonus)</h2>
+      <div class="chart"><canvas id="chart" width="1000" height="220"></canvas></div>
+    </section>
+  </div>
+
+  <script>
+    const SEPOLIA_CHAIN_ID_HEX = '0xaa36a7';
+    const SEPOLIA_CHAIN_ID_DEC = 11155111;
+
+    // 여기만 네 실제 컨트랙트 주소로 바꿔서 쓰면 됩니다.
+    const CONTRACT_ADDRESS = '0xa867c8ef3ccc2e92e4fff8e5fd40b5493503bf02';
+
+    const ABI = [
+      'function claim() external',
+      'function getBalance() external view returns (uint256)',
+      'function timeUntilNextClaim(address user) external view returns (uint256)',
+      'function claimAmount() external view returns (uint256)',
+      'function cooldown() external view returns (uint256)',
+      'function owner() external view returns (address)',
+      'event Claimed(address indexed user, uint256 amount, uint256 timestamp)'
+    ];
+
+    let provider;
+    let signer;
+    let contract;
+    let currentAddress = null;
+    let balanceHistory = [];
+
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(message, type = 'info') {
+      const el = $('statusBox');
+      el.textContent = message;
+      el.className = 'status-box' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
+    }
+
+    function formatEth(value) {
+      return Number(ethers.formatEther(value)).toFixed(6) + ' ETH';
+    }
+
+    function formatSeconds(sec) {
+      sec = Number(sec);
+      if (!Number.isFinite(sec) || sec <= 0) return '지금 요청 가능';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${h}시간 ${m}분 ${s}초`;
+    }
+
+    async function ensureMetaMask() {
+      if (!window.ethereum) {
+        throw new Error('MetaMask가 설치되어 있지 않습니다.');
+      }
+    }
+
+    async function switchToSepolia() {
+      await ensureMetaMask();
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: SEPOLIA_CHAIN_ID_HEX }]
+        });
+        setStatus('Sepolia 네트워크로 전환했습니다.', 'success');
+      } catch (error) {
+        if (error.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: SEPOLIA_CHAIN_ID_HEX,
+              chainName: 'Sepolia',
+              nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://rpc.sepolia.org'],
+              blockExplorerUrls: ['https://sepolia.etherscan.io']
+            }]
+          });
+          setStatus('Sepolia 네트워크를 추가했습니다. 다시 한 번 시도해 주세요.', 'success');
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    async function initProvider() {
+      await ensureMetaMask();
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    }
+
+    async function validateContractAddress() {
+      const code = await provider.getCode(CONTRACT_ADDRESS);
+      if (!code || code === '0x') {
+        throw new Error(
+          `현재 입력된 주소(${CONTRACT_ADDRESS})에는 Sepolia 컨트랙트 코드가 없습니다.\n` +
+          '지갑 주소를 넣은 경우가 가장 흔합니다. Etherscan의 Created 주소를 넣어 주세요.'
+        );
+      }
+    }
+
+    async function updateWalletInfo() {
+      const network = await provider.getNetwork();
+      $('network').textContent = `${network.name} (chainId: ${network.chainId})`;
+
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      currentAddress = accounts[0] || null;
+      $('walletAddress').textContent = currentAddress || '-';
+
+      if (!currentAddress) {
+        $('walletBalance').textContent = '-';
+        $('walletNonce').textContent = '-';
+        return;
+      }
+
+      const balance = await provider.getBalance(currentAddress);
+      const nonce = await provider.getTransactionCount(currentAddress, 'latest');
+      $('walletBalance').textContent = formatEth(balance);
+      $('walletNonce').textContent = String(nonce);
+    }
+
+    async function updateFaucetInfo() {
+      $('contractAddressView').textContent = CONTRACT_ADDRESS;
+
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== SEPOLIA_CHAIN_ID_DEC) {
+        throw new Error(`현재 네트워크는 ${network.name}입니다. Sepolia에서 실행해야 합니다.`);
+      }
+
+      await validateContractAddress();
+
+      const balance = await contract.getBalance();
+      $('faucetBalance').textContent = formatEth(balance);
+
+      balanceHistory.push({ t: new Date(), v: Number(ethers.formatEther(balance)) });
+      if (balanceHistory.length > 12) balanceHistory.shift();
+      drawChart();
+
+      if (currentAddress) {
+        const waitSec = await contract.timeUntilNextClaim(currentAddress);
+        $('nextClaim').textContent = formatSeconds(waitSec);
+      } else {
+        $('nextClaim').textContent = '-';
+      }
+    }
+
+    async function connectWallet() {
+      try {
+        await ensureMetaMask();
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await initProvider();
+        await updateWalletInfo();
+        await updateFaucetInfo();
+        setStatus('MetaMask 연결 완료. Faucet 정보를 불러왔습니다.', 'success');
+      } catch (error) {
+        setStatus(formatFriendlyError(error), 'error');
+      }
+    }
+
+    async function refreshAll() {
+      try {
+        await initProvider();
+        await updateWalletInfo();
+        await updateFaucetInfo();
+        setStatus('정보를 새로고침했습니다.', 'success');
+      } catch (error) {
+        setStatus(formatFriendlyError(error), 'error');
+      }
+    }
+
+    async function claimEth() {
+      try {
+        await initProvider();
+        await updateWalletInfo();
+        await validateContractAddress();
+
+        const network = await provider.getNetwork();
+        if (Number(network.chainId) !== SEPOLIA_CHAIN_ID_DEC) {
+          throw new Error('Sepolia 네트워크에서만 요청할 수 있습니다.');
+        }
+
+        const balance = await contract.getBalance();
+        if (balance < ethers.parseEther('0.01')) {
+          throw new Error('Faucet 잔액이 0.01 ETH보다 적어서 지급할 수 없습니다.');
+        }
+
+        const tx = await contract.claim();
+        setStatus(`트랜잭션 전송 완료\n해시: ${tx.hash}\n승인 대기 중...`, 'success');
+
+        const receipt = await tx.wait();
+        const link = `https://sepolia.etherscan.io/tx/${receipt.hash}`;
+        setStatus(`청구 성공\nTx Hash: ${receipt.hash}\nEtherscan: ${link}`, 'success');
+        await updateWalletInfo();
+        await updateFaucetInfo();
+      } catch (error) {
+        setStatus(formatFriendlyError(error), 'error');
+      }
+    }
+
+    function formatFriendlyError(error) {
+      const raw = (error?.shortMessage || error?.reason || error?.message || String(error));
+      if (raw.includes('could not decode result data') || raw.includes('BAD_DATA')) {
+        return '컨트랙트 호출에 실패했습니다.\n원인: 컨트랙트 주소가 잘못되었거나, 현재 네트워크에 그 주소의 컨트랙트가 없습니다.\n배포 성공 화면의 Created 주소를 CONTRACT_ADDRESS에 넣어 주세요.';
+      }
+      if (raw.includes('user rejected') || raw.includes('User denied')) {
+        return 'MetaMask에서 사용자가 요청을 취소했습니다.';
+      }
+      if (raw.includes('insufficient funds')) {
+        return '가스비가 부족합니다. MetaMask 계정에 Sepolia ETH를 더 받아와야 합니다.';
+      }
+      if (raw.includes('Please wait before claiming again')) {
+        return '아직 쿨다운이 끝나지 않았습니다. 잠시 후 다시 요청해 주세요.';
+      }
+      if (raw.includes('Faucet is empty')) {
+        return 'Faucet 잔액이 비어 있습니다. 컨트랙트 주소로 Sepolia ETH를 보내 충전한 뒤 다시 시도하세요.';
+      }
+      return raw;
+    }
+
+    function drawChart() {
+      const canvas = $('chart');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        const y = (h / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(20, y);
+        ctx.lineTo(w - 20, y);
+        ctx.stroke();
+      }
+
+      if (balanceHistory.length === 0) return;
+      const values = balanceHistory.map(p => p.v);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = Math.max(max - min, 0.000001);
+
+      ctx.strokeStyle = '#8fb8ff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      balanceHistory.forEach((p, idx) => {
+        const x = 30 + (idx * (w - 60)) / Math.max(balanceHistory.length - 1, 1);
+        const y = h - 24 - ((p.v - min) / span) * (h - 48);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = '#dce7ff';
+      ctx.font = '14px Segoe UI';
+      ctx.fillText(`최근 Faucet 잔액: ${values[values.length - 1].toFixed(6)} ETH`, 28, 24);
+    }
+
+    $('connectBtn').addEventListener('click', connectWallet);
+    $('switchBtn').addEventListener('click', async () => {
+      try {
+        await switchToSepolia();
+        await refreshAll();
+      } catch (error) {
+        setStatus(formatFriendlyError(error), 'error');
+      }
+    });
+    $('refreshBtn').addEventListener('click', refreshAll);
+    $('claimBtn').addEventListener('click', claimEth);
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', async () => {
+        try { await refreshAll(); } catch (_) {}
+      });
+      window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+
+    drawChart();
+    $('contractAddressView').textContent = CONTRACT_ADDRESS;
+  </script>
+</body>
+</html>
