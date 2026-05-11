@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>학교 프린터 요금 결제 DApp</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 30px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: auto;
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .desc {
+      color: #555;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 18px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary {
+      background: #10b981;
+      color: white;
+    }
+
+    .danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .card {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .status {
+      white-space: pre-wrap;
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>학교 프린터 요금 결제 DApp</h1>
+    <p class="desc">
+      KUSDC 스테이블 코인을 이용해 학교 프린터 사용 요금을 결제하는 DApp입니다.
+    </p>
+
+    <button class="primary" onclick="connectWallet()">MetaMask 연결</button>
+
+    <div class="card">
+      <p><b>지갑 주소:</b> <span id="walletAddress">미연결</span></p>
+      <p><b>KUSDC 잔액:</b> <span id="kusdcBalance">-</span></p>
+    </div>
+
+    <label>학번</label>
+    <input id="studentId" placeholder="예: 20231234" />
+
+    <label>프린터 ID</label>
+    <input id="printerId" placeholder="예: LIBRARY-PRINTER-01" />
+
+    <label>인쇄 페이지 수</label>
+    <input id="pages" type="number" placeholder="예: 10" oninput="calculateAmount()" />
+
+    <label>페이지당 요금</label>
+    <input id="pricePerPage" type="number" value="50" oninput="calculateAmount()" />
+
+    <label>결제 금액</label>
+    <input id="amount" readonly />
+
+    <button class="secondary" onclick="approveToken()">1. KUSDC Approve</button>
+    <button class="primary" onclick="payForPrint()">2. 프린터 요금 결제</button>
+
+    <div class="card">
+      <b>상태</b>
+      <div id="status" class="status">대기 중...</div>
+    </div>
+  </div>
+
+  <script>
+    const KUSDC_ADDRESS = "0xD98D04b3DC37F66c048D7181A4C9b07896672599";
+    const PAYMENT_ADDRESS = "0x290471F52fD7E9289Ec042C1045d11fd61fed2D6";
+    const KUSDC_ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+
+    const PAYMENT_ABI = [
+      "function payForPrint(address token, uint256 amount, string studentId, string printerId, uint256 pages) external"
+    ];
+
+    let provider;
+    let signer;
+    let userAddress;
+    let kusdcContract;
+    let paymentContract;
+
+    function setStatus(message) {
+      document.getElementById("status").innerText = message;
+    }
+
+    async function connectWallet() {
+      try {
+        if (!window.ethereum) {
+          alert("MetaMask가 필요합니다.");
+          return;
+        }
+
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        document.getElementById("walletAddress").innerText = userAddress;
+
+        kusdcContract = new ethers.Contract(KUSDC_ADDRESS, KUSDC_ABI, signer);
+        paymentContract = new ethers.Contract(PAYMENT_ADDRESS, PAYMENT_ABI, signer);
+
+        await updateBalance();
+
+        setStatus("MetaMask 연결 완료");
+      } catch (error) {
+        console.error(error);
+        setStatus("지갑 연결 실패:\n" + error.message);
+      }
+    }
+
+    async function updateBalance() {
+      const decimals = await kusdcContract.decimals();
+      const balance = await kusdcContract.balanceOf(userAddress);
+
+      document.getElementById("kusdcBalance").innerText =
+        ethers.formatUnits(balance, decimals) + " KUSDC";
+    }
+
+    function calculateAmount() {
+      const pages = Number(document.getElementById("pages").value);
+      const pricePerPage = Number(document.getElementById("pricePerPage").value);
+
+      if (!pages || !pricePerPage) {
+        document.getElementById("amount").value = "";
+        return;
+      }
+
+      const total = pages * pricePerPage;
+      document.getElementById("amount").value = total;
+    }
+
+    async function approveToken() {
+      try {
+        if (!signer) {
+          alert("먼저 MetaMask를 연결하세요.");
+          return;
+        }
+
+        const amountValue = document.getElementById("amount").value;
+        if (!amountValue || Number(amountValue) <= 0) {
+          alert("결제 금액을 확인하세요.");
+          return;
+        }
+
+        const decimals = await kusdcContract.decimals();
+        const amount = ethers.parseUnits(amountValue, decimals);
+
+        setStatus("Approve 트랜잭션 전송 중...");
+
+        const tx = await kusdcContract.approve(PAYMENT_ADDRESS, amount);
+        setStatus("Approve 전송 완료\nTX Hash: " + tx.hash + "\n확정 대기 중...");
+
+        await tx.wait();
+
+        setStatus("Approve 완료\n이제 결제 버튼을 누르세요.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Approve 실패:\n" + error.message);
+      }
+    }
+
+    async function payForPrint() {
+      try {
+        if (!signer) {
+          alert("먼저 MetaMask를 연결하세요.");
+          return;
+        }
+
+        const studentId = document.getElementById("studentId").value;
+        const printerId = document.getElementById("printerId").value;
+        const pages = Number(document.getElementById("pages").value);
+        const amountValue = document.getElementById("amount").value;
+
+        if (!studentId || !printerId || !pages || !amountValue) {
+          alert("학번, 프린터 ID, 페이지 수를 모두 입력하세요.");
+          return;
+        }
+
+        const decimals = await kusdcContract.decimals();
+        const amount = ethers.parseUnits(amountValue, decimals);
+
+        setStatus("프린터 요금 결제 트랜잭션 전송 중...");
+
+        const tx = await paymentContract.payForPrint(
+          KUSDC_ADDRESS,
+          amount,
+          studentId,
+          printerId,
+          pages
+        );
+
+        setStatus("결제 트랜잭션 전송 완료\nTX Hash: " + tx.hash + "\n확정 대기 중...");
+
+        await tx.wait();
+
+        setStatus(
+          "결제 완료!\n" +
+          "학번: " + studentId + "\n" +
+          "프린터 ID: " + printerId + "\n" +
+          "페이지 수: " + pages + "\n" +
+          "결제 금액: " + amountValue + " KUSDC\n" +
+          "TX Hash: " + tx.hash
+        );
+
+        await updateBalance();
+      } catch (error) {
+        console.error(error);
+        setStatus("결제 실패:\n" + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
