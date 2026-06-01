@@ -1,0 +1,9 @@
+[project]
+name = "upbit-mcp-final"
+version = "0.1.0"
+description = "MCP server and client for Upbit coin price and orderbook data"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp",
+    "httpx"
+]
